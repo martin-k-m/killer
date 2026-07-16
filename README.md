@@ -35,10 +35,10 @@ killer review --base origin/main      # review a diff
 killer ci                             # the full gate, for pipelines
 ```
 
-> **Status:** Pre-release — builds and passes its full test suite from source,
-> but is not yet published to crates.io. The static engine, the `.klr` test
-> framework, project intelligence, code review, and the CI gate are all
-> implemented and tested; see [Roadmap](#roadmap) for what's intentionally
+> **Status:** Available now (v0.4.0) — builds and passes its full test suite;
+> install from source (a crates.io release is coming). The static engine, the
+> `.klr` test framework, project intelligence, code review, and the CI gate are
+> all implemented and tested; see [Roadmap](#roadmap) for what's intentionally
 > deferred.
 
 ---
