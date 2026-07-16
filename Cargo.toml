@@ -1,9 +1,11 @@
 [package]
 name = "killer"
-version = "0.4.0"
+version = "1.0.0"
 edition = "2021"
 rust-version = "1.74"
 description = "A Rust security platform: static analysis, the .klr test language, a parallel test framework, project intelligence, code review, and a CI gate."
+homepage = "https://killer.blinkdev.me"
+documentation = "https://github.com/martin-k-m/killer/tree/main/docs"
 license = "Apache-2.0"
 repository = "https://github.com/martin-k-m/killer"
 readme = "README.md"

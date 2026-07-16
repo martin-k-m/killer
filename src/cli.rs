@@ -4,13 +4,22 @@ use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
 
-/// Killer — a fast, extensible code quality and security analysis engine.
+/// Killer — a Rust security platform: scan code, run `.klr` attacks, and gate CI.
 #[derive(Debug, Parser)]
 #[command(
     name = "killer",
     version,
-    about = "A fast, extensible code quality and security analysis engine.",
-    long_about = None
+    about = "A Rust security platform — scan code, run .klr attacks, review diffs, and gate CI.",
+    long_about = "Killer analyzes a project for vulnerabilities, runs adversarial .klr tests \
+against a live service, tracks a security score over time, reviews git diffs, and \
+provides a single CI gate.",
+    after_help = "EXAMPLES:\n  \
+killer scan .                         Static analysis with a 0-100 score\n  \
+killer test --suite web --url URL     Run a built-in attack suite\n  \
+killer review --base origin/main      Review the lines a change touched\n  \
+killer ci                             Full gate for CI (scan + rules + review)\n\n\
+Docs: https://github.com/martin-k-m/killer/tree/main/docs",
+    propagate_version = true
 )]
 pub struct Cli {
     #[command(subcommand)]

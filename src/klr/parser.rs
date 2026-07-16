@@ -407,6 +407,33 @@ impl Parser {
                     attack.checks.push(name);
                 }
             }
+            "fuzz" => {
+                // `fuzz <field> [<field> ...]` — shorthand for a `mutate` block
+                // with a broad default generator set.
+                self.advance();
+                let defaults: Vec<String> = [
+                    "sql_injection",
+                    "xss",
+                    "huge_values",
+                    "negative_numbers",
+                    "empty",
+                ]
+                .iter()
+                .map(|s| s.to_string())
+                .collect();
+                let mut any = false;
+                while let TokenKind::Ident(field) | TokenKind::Str(field) = self.peek().clone() {
+                    self.advance();
+                    attack.mutations.push(Mutation {
+                        field,
+                        generators: defaults.clone(),
+                    });
+                    any = true;
+                }
+                if !any {
+                    return self.err_expected("a field name to fuzz");
+                }
+            }
             "mutate" => {
                 self.advance();
                 let field = match self.peek().clone() {
@@ -856,6 +883,22 @@ report: "User input reaches database directly"
             r.report.as_deref(),
             Some("User input reaches database directly")
         );
+    }
+
+    #[test]
+    fn parses_fuzz_shorthand() {
+        let src = r#"
+attack login {
+    endpoint "/login"
+    fuzz credentials
+}
+"#;
+        let a = &parse(src).unwrap().attacks[0];
+        assert_eq!(a.mutations.len(), 1);
+        assert_eq!(a.mutations[0].field, "credentials");
+        assert!(a.mutations[0]
+            .generators
+            .contains(&"sql_injection".to_string()));
     }
 
     #[test]

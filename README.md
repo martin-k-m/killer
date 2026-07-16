@@ -1,5 +1,10 @@
 # Killer
 
+[![CI](https://github.com/martin-k-m/killer/actions/workflows/ci.yml/badge.svg)](https://github.com/martin-k-m/killer/actions/workflows/ci.yml)
+[![License: Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+![Rust 1.74+](https://img.shields.io/badge/rust-1.74%2B-orange.svg)
+![Version 1.0.0](https://img.shields.io/badge/version-1.0.0-brightgreen.svg)
+
 **A Rust security testing framework with a custom language for writing
 vulnerability attacks and code-analysis rules.**
 
@@ -35,11 +40,12 @@ killer review --base origin/main      # review a diff
 killer ci                             # the full gate, for pipelines
 ```
 
-> **Status:** Available now (v0.4.0) — builds and passes its full test suite;
+> **Status:** v1.0.0 — available now. Builds and passes its full test suite;
 > install from source (a crates.io release is coming). The static engine, the
 > `.klr` test framework, project intelligence, code review, and the CI gate are
 > all implemented and tested; see [Roadmap](#roadmap) for what's intentionally
-> deferred.
+> deferred, [docs/](docs/) for guides, and [CHANGELOG.md](CHANGELOG.md) for
+> what shipped.
 
 ---
 
@@ -347,6 +353,7 @@ Static Rule Findings
 | `repeat N { … }` | — | **Loop:** repeats the contained tests N times. |
 | `check <name>` | `check authentication` | Expands to built-in expectations (`authentication`, `injection`, `rate_limit`). |
 | `mutate <field> { … }` | — | **Fuzzing:** expands the test into one variant per generator value. |
+| `fuzz <field>` | `fuzz amount` | Shorthand for `mutate` with a broad default generator set. |
 | `expect { … }` | `expect: <cond>` | One or more conditions. |
 | `severity` | `critical`/`high`/`medium`/`low` | — |
 | `message: "…"` | `message "…"` | Shown when the attack fails. |
@@ -703,6 +710,20 @@ drives the actual HTTP client end-to-end.
   the interactive `ratatui` TUI (`killer ui`), `watch` mode, a package manager
   (`killer add` / imports), and YAML config.
 - **Beyond** — a distributed, cloud-runner security lab.
+
+---
+
+## Documentation & community
+
+- **[docs/](docs/)** — [introduction](docs/introduction.md),
+  [installation](docs/installation.md), [quickstart](docs/quickstart.md),
+  [CLI reference](docs/cli.md), [`.klr` guide](docs/klr-guide.md),
+  [writing tests](docs/writing-tests.md), [architecture](docs/architecture.md),
+  and [examples](docs/examples.md).
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** — how to build, test, and extend Killer.
+- **[SECURITY.md](SECURITY.md)** — how to report a vulnerability in Killer itself.
+- **[CHANGELOG.md](CHANGELOG.md)** — release history.
+- Website: [killer.blinkdev.me](https://killer.blinkdev.me)
 
 ---
 

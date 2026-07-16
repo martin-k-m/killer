@@ -463,7 +463,10 @@ pub fn banner() -> String {
     };
 
     let (l1, p1) = row("K I L L E R");
-    let (l2, p2) = row("Software Security Engine");
+    let (l2, p2) = row(&format!(
+        "Software Security Engine · v{}",
+        env!("CARGO_PKG_VERSION")
+    ));
 
     let mut s = String::new();
     s.push_str(&format!("{}\n", format!("╭{}╮", "─".repeat(W)).red()));
