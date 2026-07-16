@@ -522,16 +522,15 @@ $ killer ci .
 `killer github enable` writes `.github/workflows/killer.yml` so the gate runs on
 every push and pull request.
 
-> **Scope of this Phase 4 increment.** The full Phase 4 spec describes a
-> platform (software-graph/data-flow engine, a networked rule & attack
-> marketplace, a full multi-language IR compiler, a web dashboard, live
-> GitHub/GitLab/Jenkins apps, and enterprise features). This increment ships the
-> local-first, testable core of that vision — **persistent intelligence, code
-> review, and a CI gate**. The hosted/UI/networked pieces are intentionally
-> deferred rather than stubbed. Note also that most of **Phase 3** (a
-> coverage-guided fuzzing engine and chaos testing) is not yet implemented —
-> `killer fuzz` today is a CLI surface over the existing `.klr` input
-> generators, not a standalone fuzzing engine.
+> **Scope.** Killer ships the local-first, testable core of a larger security
+> platform — **persistent intelligence, code review, and a CI gate** among
+> them. The bigger vision (a semantic data-flow engine, a networked rule &
+> attack marketplace, a multi-language IR, a web dashboard, live
+> GitHub/GitLab/Jenkins apps) is on the [roadmap](#roadmap), intentionally
+> deferred rather than stubbed. In the same spirit, `killer fuzz` is a CLI
+> surface over the existing `.klr` input generators, not a standalone
+> coverage-guided fuzzing engine, and `killer graph` is structural, not
+> data-flow.
 
 ---
 
@@ -604,23 +603,26 @@ binary (`src/main.rs`).
 
 ```
 src/
-├── main.rs        # CLI entry point (scan / test / explain / init / version)
+├── main.rs        # CLI entry point (scan / test / fuzz / graph / benchmark / watch / …)
 ├── lib.rs         # public library surface
 ├── cli.rs         # clap command/flag definitions
 ├── scanner.rs     # directory walk, language detection, file loading
 ├── analyzer.rs    # Rule trait, Finding/Severity types, the Analyzer
 ├── config.rs      # .killer.toml loading
-├── report.rs      # scan/attack/review/history rendering
+├── report.rs      # scan/attack/review/history/graph/fuzz rendering
 ├── results.rs     # TestRun/AttackOutcome types + JSON storage
 ├── explain.rs     # knowledge base behind `killer explain`
-├── intelligence.rs # persistent snapshots + score trends (Phase 4)
+├── intelligence.rs # persistent snapshots + score trends
+├── fuzz.rs        # fuzz generator catalog (shared with .klr) + `killer fuzz`
+├── graph.rs       # structural project graph behind `killer graph`
+├── watch.rs       # dependency-free polling watcher behind `killer watch`
 ├── git.rs         # git-diff parsing for the review engine
 ├── review.rs      # code review over changed lines (+ concurrency heuristics)
 ├── ci.rs          # CI gate helpers + GitHub Actions workflow
-├── rules/         # Phase 1 static rules
+├── rules/         # static scan rules
 │   ├── security.rs    # hardcoded secrets, dangerous commands
 │   ├── quality.rs     # large files, TODO/FIXME, duplicate code
-│   └── dependencies.rs # reserved for a future phase
+│   └── dependencies.rs # reserved for future dependency rules
 ├── suites.rs      # built-in test suites (embedded .klr)
 ├── klr/           # the Killer Rule Language
 │   ├── lexer.rs       # text → tokens
@@ -636,10 +638,10 @@ src/
 └── suites/        # embedded .klr suites (web, api, authentication, database, crypto, filesystem)
 ```
 
-> **Note on layout:** the Phase 2 spec sketches a `core/ scanner/ analyzer/ …`
-> multi-directory reorg. For a single crate that would be churn without benefit,
-> so the Phase 1 modules stayed put and Phase 2 added the `klr/` and `attacks/`
-> module trees alongside them.
+> **Note on layout:** a `core/ scanner/ analyzer/ …` multi-crate split was
+> considered and deliberately not done — for a single crate it would be churn
+> without benefit. The `klr/` and `attacks/` module trees live alongside the
+> core modules instead. See [docs/architecture.md](docs/architecture.md).
 
 ### Adding a rule
 
@@ -697,30 +699,37 @@ drives the actual HTTP client end-to-end.
 
 ---
 
+## What's shipped
+
+Everything below is implemented, tested, and available now:
+
+- **Static analysis engine** — scanner, language detection, an extensible rule
+  engine, security/quality rules, and a scored terminal report.
+- **The `.klr` language** — lexer, parser, AST, and interpreter with coded
+  diagnostics; `suite`/`test`/`repeat`/`mutate`/`fuzz`, static `rule`
+  definitions, and HTTP/filesystem/database attack executors.
+- **`killer test`** — a parallel runner, six built-in suites, and JSON/HTML
+  reports.
+- **`killer fuzz`** — the `.klr` input generators as a command (preview inputs,
+  or fire them at a target and flag faults).
+- **`killer graph`** — a structural import/dependency graph.
+- **`killer benchmark`** — scan-throughput measurement.
+- **`killer watch`** — dependency-free re-scan on file change.
+- **Project intelligence** (`history`), **code review** (`review`), and the
+  **CI gate** (`ci` / `github enable`).
+
 ## Roadmap
 
-- **Phase 1** ✅ — static analysis engine: scanner, language detection, rule
-  engine, security/quality rules, scored terminal report.
-- **Phase 2** ✅ — the Killer Rule Language (`.klr`): lexer, parser, AST,
-  interpreter, HTTP/filesystem/database attack executors, `killer test` /
-  `killer explain`, result storage, attack reports.
-- **Phase 3** 🟡 *(partial)* — deeper analysis. **Done:** `killer fuzz` surfaces
-  the `.klr` input generators as a command (preview or fire-at-target), and
-  `killer graph` builds a structural import/dependency graph. **Deferred:** AST
-  parsing with Tree-sitter, TLS transport for attacks, a coverage-guided fuzzing
-  engine, and chaos testing.
-- **Phase 4** 🟡 *(partial)* — platform features. **Done:** project
-  intelligence (`history`), code review (`review`), CI gate (`ci` /
-  `github enable`), and a structural project graph (`graph`). **Deferred:** a
-  semantic software-graph/data-flow engine, networked rule & attack
-  marketplace, full multi-language IR, live GitHub/GitLab/Jenkins apps, and
-  enterprise features.
-- **Phase 5** 🟡 *(partial)* — the test-framework upgrade. **Done:** `.klr` as a
-  real language (`suite`/`test`/`repeat`/`mutate`, coded errors), a parallel
-  runner, built-in suites, JSON/HTML reports, the CLI banner, and `watch` mode
-  (dependency-free polling). **Deferred:** the interactive `ratatui` TUI
-  (`killer ui`), a package manager (`killer add` / imports), and YAML config.
-- **Beyond** — a distributed, cloud-runner security lab.
+Genuinely future work — listed so scope stays honest, never stubbed in code:
+
+- TLS transport for attacking `https://` targets (the client is `http://` only,
+  behind a trait so a TLS backend can drop in).
+- A semantic data-flow graph and a Tree-sitter multi-language IR (today's
+  `killer graph` is structural).
+- A coverage-guided fuzzing engine and chaos testing as their own subsystems.
+- An interactive `ratatui` TUI (`killer ui`), a plugin SDK, a package manager
+  (`killer add` / imports), and a networked rule & attack marketplace.
+- Live GitHub/GitLab/Jenkins apps and a hosted, distributed security lab.
 
 ---
 

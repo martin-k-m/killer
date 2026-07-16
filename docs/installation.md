@@ -13,7 +13,7 @@ cargo install --path .
 This builds an optimized binary and installs `killer` into `~/.cargo/bin`
 (make sure that's on your `PATH`).
 
-## From crates.io (coming soon)
+## From crates.io (not yet published)
 
 Once a release is published, this will work:
 

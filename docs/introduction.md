@@ -24,7 +24,7 @@
 
 ## When to use it
 
-- In development, run `killer scan` to catch secrets and dangerous patterns.
+- During development, run `killer scan` to catch secrets and dangerous patterns.
 - Write `.klr` suites to prove your service defends against injection, path
   traversal, missing rate limits, and session reuse.
 - Drop `killer ci` into your pipeline to gate merges on new findings.
