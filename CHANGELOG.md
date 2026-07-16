@@ -11,6 +11,16 @@ Developer-workflow release. No breaking changes; all existing commands and
 
 ### Added
 
+- **`killer graph [--json]`** — a structural project-graph engine. Parses
+  per-file imports (Rust, JavaScript/TypeScript, Python, Go, Java, Ruby) and
+  declared dependencies from manifests (`Cargo.toml`, `package.json`,
+  `requirements.txt`, `go.mod`), then reports the most-imported modules, import
+  hotspots, and **possibly-unused declared dependencies** — a supply-chain
+  signal. Dependency usage is matched best-effort (hyphen/underscore
+  normalization, plus an inline `crate::path` scan for Rust). `--json` emits the
+  full node/edge graph.
+- **`killer benchmark [--runs N]`** — times repeated scans and reports min/avg
+  latency and files-per-second / lines-per-second throughput.
 - **`killer fuzz`** — surfaces the `.klr` `mutate`/`fuzz` generators as a
   first-class command. Without `--url` it previews the adversarial inputs it
   would send; with `--url` it fires each one at a target (using the same
@@ -35,8 +45,11 @@ Developer-workflow release. No breaking changes; all existing commands and
 
 `killer fuzz` is a CLI surface over the existing input generators — not a
 coverage-guided fuzzing engine — and `killer watch` polls rather than
-subscribing to OS file events. A standalone fuzzing/chaos subsystem, a
-`ratatui` TUI, and a plugin marketplace remain on the roadmap, not shipped.
+subscribing to OS file events. `killer graph` is a *structural* graph
+(imports + declared dependencies with heuristic usage matching), not a semantic
+or data-flow graph. A standalone fuzzing/chaos subsystem, a true multi-language
+IR / data-flow engine, a `ratatui` TUI, and a plugin marketplace remain on the
+roadmap, not shipped.
 
 ## [1.1.0] — 2026-07-16
 

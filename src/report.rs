@@ -476,6 +476,93 @@ fn sparkline_char(score: u32) -> char {
 }
 
 /// The Killer security-console banner.
+/// Render a [`crate::graph::ProjectGraph`] as a terminal summary.
+pub fn render_graph(graph: &crate::graph::ProjectGraph) -> String {
+    let mut out = String::new();
+    let rule = "=".repeat(52);
+    out.push_str(&format!("\n{}\n\n", rule.dimmed()));
+    out.push_str(&format!("{}\n\n", "KILLER PROJECT GRAPH".bold()));
+
+    let used = graph.dependencies.iter().filter(|d| d.used).count();
+    let unused = graph.dependencies.len() - used;
+    out.push_str(&format!(
+        "{}  {} importing files · {} external modules\n",
+        "Imports:".bold(),
+        graph.files.len(),
+        graph.module_count()
+    ));
+    out.push_str(&format!(
+        "{}  {} declared · {} used · {} possibly unused\n\n",
+        "Dependencies:".bold(),
+        graph.dependencies.len(),
+        used,
+        unused
+    ));
+
+    let top = graph.top_modules(10);
+    if !top.is_empty() {
+        out.push_str(&format!("{}\n", "Most-imported modules".bold().underline()));
+        let width = top.iter().map(|(m, _)| m.len()).max().unwrap_or(0);
+        for (module, count) in &top {
+            out.push_str(&format!(
+                "  {:<width$}  {} file{}\n",
+                module.bold(),
+                count,
+                if *count == 1 { "" } else { "s" },
+                width = width
+            ));
+        }
+        out.push('\n');
+    }
+
+    let hotspots = graph.import_hotspots(5);
+    if !hotspots.is_empty() {
+        out.push_str(&format!("{}\n", "Import hotspots".bold().underline()));
+        for (path, count) in &hotspots {
+            out.push_str(&format!(
+                "  {} {}  {}\n",
+                "·".dimmed(),
+                path,
+                format!("{count} imports").dimmed()
+            ));
+        }
+        out.push('\n');
+    }
+
+    let unused_deps = graph.unused_dependencies();
+    if !unused_deps.is_empty() {
+        out.push_str(&format!(
+            "{}\n",
+            "Possibly unused dependencies".yellow().bold().underline()
+        ));
+        for d in &unused_deps {
+            let tag = if d.dev { " (dev)" } else { "" };
+            out.push_str(&format!(
+                "  {} {}{}  {}\n",
+                "⚠".yellow(),
+                d.name.bold(),
+                tag.dimmed(),
+                format!("declared in {}", d.manifest).dimmed()
+            ));
+        }
+        out.push_str(&format!(
+            "\n  {}\n",
+            "Heuristic: import names are matched to declared names best-effort.".dimmed()
+        ));
+        out.push('\n');
+    }
+
+    if graph.files.is_empty() && graph.dependencies.is_empty() {
+        out.push_str(&format!(
+            "{}\n\n",
+            "No imports or manifests found to graph.".dimmed()
+        ));
+    }
+
+    out.push_str(&format!("{}\n", rule.dimmed()));
+    out
+}
+
 /// Render the catalog of fuzz generators (`killer fuzz --list`).
 pub fn render_fuzz_catalog() -> String {
     let mut out = String::new();

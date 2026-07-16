@@ -32,6 +32,7 @@ pub mod config;
 pub mod explain;
 pub mod fuzz;
 pub mod git;
+pub mod graph;
 pub mod intelligence;
 pub mod klr;
 pub mod report;

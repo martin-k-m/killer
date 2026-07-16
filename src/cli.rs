@@ -132,6 +132,28 @@ pub enum Command {
         out: PathBuf,
     },
 
+    /// Build a structural graph of the project (files, imports, dependencies).
+    Graph {
+        /// Project directory to graph (defaults to the current directory).
+        #[arg(default_value = ".")]
+        path: PathBuf,
+
+        /// Emit the graph as JSON instead of a terminal summary.
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// Benchmark scan performance over a project.
+    Benchmark {
+        /// Project directory to benchmark (defaults to the current directory).
+        #[arg(default_value = ".")]
+        path: PathBuf,
+
+        /// Number of scan iterations to time.
+        #[arg(long, default_value = "5")]
+        runs: usize,
+    },
+
     /// Watch source files and re-scan whenever they change.
     Watch {
         /// Project directory to watch (defaults to the current directory).

@@ -30,6 +30,34 @@ Run `.klr` attacks (and static `.klr` rules) against a target.
 `PATH` may be a single `.klr` file or a directory of them; it defaults to the
 `[klr] directory` in `.killer.toml`, or the current directory.
 
+## `killer graph [PATH]`
+
+Build a structural graph of the project: which source files import which
+external modules, and which dependencies each manifest declares. Reports the
+most-imported modules, import hotspots, and dependencies that appear to be
+declared but unused.
+
+| Flag | Description |
+| ---- | ----------- |
+| `--json` | Emit the full node/edge graph as JSON instead of a summary. |
+
+Imports are extracted for Rust, JavaScript/TypeScript, Python, Go, Java, and
+Ruby; declared dependencies are read from `Cargo.toml`, `package.json`,
+`requirements.txt`, and `go.mod`. Usage matching is a heuristic (hyphen/
+underscore normalization plus an inline `crate::path` scan for Rust), so the
+"possibly unused" list is a hint, not a guarantee. This is a structural graph,
+not a semantic/data-flow one.
+
+## `killer benchmark [PATH]`
+
+Time repeated scans of a project and report throughput.
+
+| Flag | Description |
+| ---- | ----------- |
+| `--runs <N>` | Number of scan iterations to time (default `5`). |
+
+Prints per-run latency, min/avg, and files-per-second / lines-per-second.
+
 ## `killer fuzz`
 
 Generate adversarial inputs and, optionally, fire them at a target. Uses the

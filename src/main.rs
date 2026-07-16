@@ -28,7 +28,7 @@ use killer::intelligence::{IntelStore, Snapshot};
 use killer::klr::interpreter::RunConfig;
 use killer::report::{self, Report};
 use killer::results::{RuleFinding, TestRun};
-use killer::{ci, explain, klr, review, rules, scanner, suites, watch};
+use killer::{ci, explain, graph, klr, review, rules, scanner, suites, watch};
 
 fn main() -> ExitCode {
     let cli = Cli::parse();
@@ -85,6 +85,8 @@ fn main() -> ExitCode {
             project,
             fail_on_issues,
         }),
+        Command::Graph { path, json } => run_graph(&path, json),
+        Command::Benchmark { path, runs } => run_benchmark(&path, runs),
         Command::Watch { path, interval } => run_watch(&path, interval),
         Command::Report { path, html, out } => run_report(&path, html, &out),
         Command::Explain { issue_id } => run_explain(&issue_id),
@@ -169,6 +171,74 @@ fn run_scan(path: &Path, quiet: bool, fail_on_issues: bool, no_record: bool) -> 
     if fail_on_issues && report.has_blocking_issues() {
         return Ok(ExitCode::FAILURE);
     }
+    Ok(ExitCode::SUCCESS)
+}
+
+/// Run `killer graph`.
+fn run_graph(path: &Path, json: bool) -> Result<ExitCode> {
+    let root = path
+        .canonicalize()
+        .with_context(|| format!("cannot access path '{}'", path.display()))?;
+    let config = Config::load(&root)?;
+    let scan = scanner::scan(&root, &config);
+    let project_graph = graph::ProjectGraph::build(&scan);
+
+    if json {
+        println!("{}", serde_json::to_string_pretty(&project_graph)?);
+    } else {
+        print!("{}", report::banner());
+        print!("{}", report::render_graph(&project_graph));
+    }
+    Ok(ExitCode::SUCCESS)
+}
+
+/// Run `killer benchmark`.
+fn run_benchmark(path: &Path, runs: usize) -> Result<ExitCode> {
+    let root = path
+        .canonicalize()
+        .with_context(|| format!("cannot access path '{}'", path.display()))?;
+    let config = Config::load(&root)?;
+    let runs = runs.max(1);
+
+    print!("{}", report::banner());
+    println!(
+        "{}  {} run(s) over {}\n",
+        "Benchmark".bold(),
+        runs,
+        root.display()
+    );
+
+    let mut durations: Vec<Duration> = Vec::with_capacity(runs);
+    let mut stats = scanner::ProjectStats::default();
+    for i in 1..=runs {
+        let start = Instant::now();
+        let scan = scanner::scan(&root, &config);
+        let elapsed = start.elapsed();
+        stats = scan.stats;
+        durations.push(elapsed);
+        println!("  run {i:>2}  {:>8.2} ms", elapsed.as_secs_f64() * 1000.0);
+    }
+
+    let total: Duration = durations.iter().sum();
+    let avg = total / runs as u32;
+    let min = durations.iter().min().copied().unwrap_or_default();
+    let avg_secs = avg.as_secs_f64();
+
+    println!();
+    println!("{}", "Results".bold().underline());
+    println!("  {}  {}", "Files:".bold(), stats.files);
+    println!("  {}  {}", "Lines:".bold(), stats.lines_of_code);
+    println!("  {}  {:.2} ms", "Min:".bold(), min.as_secs_f64() * 1000.0);
+    println!("  {}  {:.2} ms", "Avg:".bold(), avg_secs * 1000.0);
+    if avg_secs > 0.0 {
+        println!(
+            "  {}  {:.0} files/s · {:.0} lines/s",
+            "Throughput:".bold(),
+            stats.files as f64 / avg_secs,
+            stats.lines_of_code as f64 / avg_secs
+        );
+    }
+    println!();
     Ok(ExitCode::SUCCESS)
 }
 

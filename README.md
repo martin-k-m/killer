@@ -100,6 +100,8 @@ see the build note under [Development](#development) if `dlltool` errors appear.
 killer scan <path>              # static analysis (defaults to ".")
 killer test [path]              # run .klr tests & rules (--suite, --parallel)
 killer fuzz [--url URL]         # generate adversarial inputs & fire them
+killer graph [path]             # structural project graph (--json)
+killer benchmark [path]         # scan throughput (--runs N)
 killer watch [path]             # re-scan on file change (--interval)
 killer report [path] --html     # render the last run (terminal or HTML)
 killer history [path]           # security-score trend over time
@@ -703,14 +705,16 @@ drives the actual HTTP client end-to-end.
   interpreter, HTTP/filesystem/database attack executors, `killer test` /
   `killer explain`, result storage, attack reports.
 - **Phase 3** 🟡 *(partial)* — deeper analysis. **Done:** `killer fuzz` surfaces
-  the `.klr` input generators as a command (preview or fire-at-target).
-  **Deferred:** AST parsing with Tree-sitter, a dependency graph, TLS transport
-  for attacks, a coverage-guided fuzzing engine, and chaos testing.
+  the `.klr` input generators as a command (preview or fire-at-target), and
+  `killer graph` builds a structural import/dependency graph. **Deferred:** AST
+  parsing with Tree-sitter, TLS transport for attacks, a coverage-guided fuzzing
+  engine, and chaos testing.
 - **Phase 4** 🟡 *(partial)* — platform features. **Done:** project
   intelligence (`history`), code review (`review`), CI gate (`ci` /
-  `github enable`). **Deferred:** software-graph/data-flow engine, networked
-  rule & attack marketplace, full multi-language IR, live GitHub/GitLab/Jenkins
-  apps, and enterprise features.
+  `github enable`), and a structural project graph (`graph`). **Deferred:** a
+  semantic software-graph/data-flow engine, networked rule & attack
+  marketplace, full multi-language IR, live GitHub/GitLab/Jenkins apps, and
+  enterprise features.
 - **Phase 5** 🟡 *(partial)* — the test-framework upgrade. **Done:** `.klr` as a
   real language (`suite`/`test`/`repeat`/`mutate`, coded errors), a parallel
   runner, built-in suites, JSON/HTML reports, the CLI banner, and `watch` mode
