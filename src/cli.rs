@@ -82,6 +82,41 @@ pub enum Command {
         fail_on_issues: bool,
     },
 
+    /// Generate adversarial inputs and (optionally) fire them at a target.
+    ///
+    /// Surfaces the same fuzz generators the `.klr` `mutate` construct uses.
+    /// Without `--url` it just prints the inputs it would send.
+    Fuzz {
+        /// List the available generators and exit.
+        #[arg(long)]
+        list: bool,
+
+        /// The request field to mutate (fuzz values are sent as this key).
+        #[arg(long, default_value = "input")]
+        field: String,
+
+        /// Comma-separated generator names (default: all of them).
+        #[arg(long)]
+        generators: Option<String>,
+
+        /// Absolute or relative target URL. Relative targets resolve against
+        /// the configured `base_url`. Without this, inputs are only printed.
+        #[arg(long)]
+        url: Option<String>,
+
+        /// HTTP method to use when a target is set.
+        #[arg(long, default_value = "POST")]
+        method: String,
+
+        /// Project directory used to resolve config/`base_url` (default: `.`).
+        #[arg(long, default_value = ".")]
+        project: PathBuf,
+
+        /// Exit non-zero if any input triggers a fault or an unreachable target.
+        #[arg(long)]
+        fail_on_issues: bool,
+    },
+
     /// Render a report from the latest saved test results.
     Report {
         /// Project directory (defaults to the current directory).
@@ -95,6 +130,17 @@ pub enum Command {
         /// Output path for the HTML report.
         #[arg(long, default_value = "killer-report.html")]
         out: PathBuf,
+    },
+
+    /// Watch source files and re-scan whenever they change.
+    Watch {
+        /// Project directory to watch (defaults to the current directory).
+        #[arg(default_value = ".")]
+        path: PathBuf,
+
+        /// Seconds between checks for changes.
+        #[arg(long, default_value = "2")]
+        interval: u64,
     },
 
     /// Explain a security issue id, e.g. `killer explain KLR-SQLI`.
@@ -155,6 +201,11 @@ pub enum Command {
         /// Overwrite an existing config file.
         #[arg(long)]
         force: bool,
+
+        /// Also scaffold a `security-tests/` directory with a starter `.klr`
+        /// file so you can run `killer test` right away.
+        #[arg(long)]
+        scaffold: bool,
     },
 
     /// Diagnose a project's Killer setup and environment.

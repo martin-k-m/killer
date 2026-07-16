@@ -99,13 +99,15 @@ see the build note under [Development](#development) if `dlltool` errors appear.
 ```sh
 killer scan <path>              # static analysis (defaults to ".")
 killer test [path]              # run .klr tests & rules (--suite, --parallel)
+killer fuzz [--url URL]         # generate adversarial inputs & fire them
+killer watch [path]             # re-scan on file change (--interval)
 killer report [path] --html     # render the last run (terminal or HTML)
 killer history [path]           # security-score trend over time
 killer review [path]            # review changed lines (git diff)
 killer ci [path]                # full gate: scan + rules + review
 killer github enable [path]     # write a GitHub Actions workflow
 killer explain <ISSUE_ID>       # explain an issue, e.g. KLR-SQLI
-killer init [path]              # write a default .killer.toml
+killer init [path] --scaffold   # write .killer.toml (+ starter .klr)
 killer doctor [path]            # diagnose setup (--fix to repair)
 killer version                  # version + rules, issue ids & suites
 ```
@@ -524,8 +526,10 @@ every push and pull request.
 > GitHub/GitLab/Jenkins apps, and enterprise features). This increment ships the
 > local-first, testable core of that vision — **persistent intelligence, code
 > review, and a CI gate**. The hosted/UI/networked pieces are intentionally
-> deferred rather than stubbed. Note also that **Phase 3** (fuzzing / chaos
-> testing) is not yet implemented.
+> deferred rather than stubbed. Note also that most of **Phase 3** (a
+> coverage-guided fuzzing engine and chaos testing) is not yet implemented —
+> `killer fuzz` today is a CLI surface over the existing `.klr` input
+> generators, not a standalone fuzzing engine.
 
 ---
 
@@ -698,8 +702,10 @@ drives the actual HTTP client end-to-end.
 - **Phase 2** ✅ — the Killer Rule Language (`.klr`): lexer, parser, AST,
   interpreter, HTTP/filesystem/database attack executors, `killer test` /
   `killer explain`, result storage, attack reports.
-- **Phase 3** ⏳ — deeper analysis: AST parsing with Tree-sitter, a dependency
-  graph, TLS transport for attacks, fuzzing, and chaos testing. *(not started)*
+- **Phase 3** 🟡 *(partial)* — deeper analysis. **Done:** `killer fuzz` surfaces
+  the `.klr` input generators as a command (preview or fire-at-target).
+  **Deferred:** AST parsing with Tree-sitter, a dependency graph, TLS transport
+  for attacks, a coverage-guided fuzzing engine, and chaos testing.
 - **Phase 4** 🟡 *(partial)* — platform features. **Done:** project
   intelligence (`history`), code review (`review`), CI gate (`ci` /
   `github enable`). **Deferred:** software-graph/data-flow engine, networked
@@ -707,9 +713,9 @@ drives the actual HTTP client end-to-end.
   apps, and enterprise features.
 - **Phase 5** 🟡 *(partial)* — the test-framework upgrade. **Done:** `.klr` as a
   real language (`suite`/`test`/`repeat`/`mutate`, coded errors), a parallel
-  runner, built-in suites, JSON/HTML reports, and the CLI banner. **Deferred:**
-  the interactive `ratatui` TUI (`killer ui`), `watch` mode, a package manager
-  (`killer add` / imports), and YAML config.
+  runner, built-in suites, JSON/HTML reports, the CLI banner, and `watch` mode
+  (dependency-free polling). **Deferred:** the interactive `ratatui` TUI
+  (`killer ui`), a package manager (`killer add` / imports), and YAML config.
 - **Beyond** — a distributed, cloud-runner security lab.
 
 ---

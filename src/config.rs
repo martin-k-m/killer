@@ -125,7 +125,53 @@ impl Config {
     pub fn default_file_contents() -> &'static str {
         DEFAULT_CONFIG_TEMPLATE
     }
+
+    /// A runnable starter `.klr` file, written by `killer init --scaffold`.
+    pub fn starter_klr() -> &'static str {
+        STARTER_KLR_TEMPLATE
+    }
 }
+
+/// The directory `killer init --scaffold` creates for `.klr` tests. Matches the
+/// `[klr] directory` in [`DEFAULT_CONFIG_TEMPLATE`].
+pub const SCAFFOLD_DIR: &str = "security-tests";
+
+/// The starter test file name written into [`SCAFFOLD_DIR`].
+pub const SCAFFOLD_FILE: &str = "getting-started.klr";
+
+const STARTER_KLR_TEMPLATE: &str = r#"# Starter Killer security tests.
+#
+# Run the dynamic attacks against a live server:   killer test
+# Run only the static code rules (no server):       killer ci
+#
+# A .klr file describes how a SECURE system should behave: a test PASSES when
+# the target defends itself and FAILS when an attack succeeds.
+
+suite "Getting Started" {
+
+    # A dynamic attack — needs a server running at the configured base_url.
+    attack sql_login_bypass {
+        request POST "/login"
+        send {
+            username = "' OR 1=1 --"
+            password = "x"
+        }
+        expect {
+            status != 200
+            response does_not_contain "token"
+        }
+        severity critical
+        message: "SQL injection authentication bypass"
+    }
+}
+
+# A static code rule — runs against your source, no server required.
+rule "Possible hard-coded credential"
+when function contains "password ="
+without sanitization
+severity high
+report: "Move secrets to environment variables or a secret manager"
+"#;
 
 const DEFAULT_CONFIG_TEMPLATE: &str = r#"# Killer configuration
 # https://github.com/martin-k-m/killer
@@ -205,5 +251,13 @@ mod tests {
     fn default_template_parses() {
         let c: Config = toml::from_str(Config::default_file_contents()).unwrap();
         assert!(c.rules.secret_detection);
+    }
+
+    #[test]
+    fn starter_klr_parses() {
+        // The scaffolded starter file must be valid .klr out of the box.
+        let program = crate::klr::parse(Config::starter_klr()).unwrap();
+        assert_eq!(program.all_attacks().len(), 1);
+        assert_eq!(program.rules.len(), 1);
     }
 }

@@ -476,6 +476,164 @@ fn sparkline_char(score: u32) -> char {
 }
 
 /// The Killer security-console banner.
+/// Render the catalog of fuzz generators (`killer fuzz --list`).
+pub fn render_fuzz_catalog() -> String {
+    let mut out = String::new();
+    out.push_str(&format!("\n{}\n\n", "FUZZ GENERATORS".bold()));
+    for g in crate::fuzz::catalog() {
+        out.push_str(&format!(
+            "  {}  {}\n      {}\n",
+            g.name.bold(),
+            format!("[{}]", g.category).dimmed(),
+            g.description.dimmed()
+        ));
+    }
+    out.push_str(&format!(
+        "\n{}\n",
+        "Use several with: killer fuzz --generators sql_injection,huge_values --url URL".dimmed()
+    ));
+    out
+}
+
+/// Truncate a fuzz value for display, escaping control characters.
+fn fuzz_display_value(value: &str) -> String {
+    const MAX: usize = 48;
+    let cleaned: String = value
+        .chars()
+        .map(|c| if c.is_control() { '·' } else { c })
+        .collect();
+    if cleaned.chars().count() > MAX {
+        let head: String = cleaned.chars().take(MAX).collect();
+        format!("{head}… ({} chars)", value.chars().count())
+    } else if cleaned.is_empty() {
+        "(empty)".to_string()
+    } else {
+        cleaned
+    }
+}
+
+/// Render a [`crate::fuzz::FuzzReport`] as a terminal report.
+pub fn render_fuzz(report: &crate::fuzz::FuzzReport) -> String {
+    use crate::fuzz::HitOutcome;
+
+    let mut out = String::new();
+    let rule = "=".repeat(52);
+    out.push_str(&format!("\n{}\n\n", rule.dimmed()));
+    out.push_str(&format!("{}\n\n", "KILLER FUZZ REPORT".bold()));
+    out.push_str(&format!("{}  {}\n", "Field:".bold(), report.field));
+    match &report.target {
+        Some(t) => out.push_str(&format!("{}  {} {}\n", "Target:".bold(), report.method, t)),
+        None => out.push_str(&format!(
+            "{}  {}\n",
+            "Target:".bold(),
+            "(none — dry run, inputs generated only)".dimmed()
+        )),
+    }
+    out.push_str(&format!(
+        "{}  {}\n\n",
+        "Inputs:".bold(),
+        report.total_inputs()
+    ));
+
+    // Generated inputs, grouped by generator.
+    for preview in &report.previews {
+        out.push_str(&format!(
+            "{} {}\n",
+            preview.generator.bold(),
+            format!("[{}]", preview.category).dimmed()
+        ));
+        for v in &preview.values {
+            out.push_str(&format!("  {} {}\n", "·".dimmed(), fuzz_display_value(v)));
+        }
+    }
+    out.push('\n');
+
+    // When fired at a target, summarize outcomes and list anomalies.
+    if report.target.is_some() {
+        let faults = report
+            .hits
+            .iter()
+            .filter(|h| matches!(h.outcome, HitOutcome::Fault(_)))
+            .count();
+        let unreachable = report
+            .hits
+            .iter()
+            .filter(|h| matches!(h.outcome, HitOutcome::Unreachable(_)))
+            .count();
+        let handled = report.hits.len() - faults - unreachable;
+
+        out.push_str(&format!("{}\n", "Results".bold().underline()));
+        out.push_str(&format!(
+            "  {}  {}\n",
+            handled.to_string().green().bold(),
+            "handled cleanly".green()
+        ));
+        if faults > 0 {
+            out.push_str(&format!(
+                "  {}  {}\n",
+                faults.to_string().red().bold(),
+                "server faults (5xx)".red()
+            ));
+        }
+        if unreachable > 0 {
+            out.push_str(&format!(
+                "  {}  {}\n",
+                unreachable.to_string().yellow().bold(),
+                "unreachable".yellow()
+            ));
+        }
+        out.push('\n');
+
+        let anomalies: Vec<_> = report.anomalies().collect();
+        if !anomalies.is_empty() {
+            out.push_str(&format!("{}\n", "Anomalies".bold().underline()));
+            for h in anomalies {
+                let (mark, detail) = match &h.outcome {
+                    HitOutcome::Fault(s) => ("✗".red().bold(), format!("status {s}")),
+                    HitOutcome::Unreachable(e) => ("!".yellow(), e.clone()),
+                    HitOutcome::Handled(_) => continue,
+                };
+                out.push_str(&format!(
+                    "  {mark} {}={} {}  {}\n",
+                    report.field,
+                    fuzz_display_value(&h.value),
+                    format!("({})", h.generator).dimmed(),
+                    detail.dimmed()
+                ));
+            }
+            out.push('\n');
+        }
+
+        if report.elapsed_ms > 0 {
+            out.push_str(&format!(
+                "{}  {:.2}s\n\n",
+                "Time:".bold(),
+                report.elapsed_ms as f64 / 1000.0
+            ));
+        }
+
+        let verdict = if faults > 0 || unreachable > 0 {
+            format!("{} anomal{} found", faults + unreachable, {
+                if faults + unreachable == 1 {
+                    "y"
+                } else {
+                    "ies"
+                }
+            })
+            .red()
+            .bold()
+        } else {
+            "No anomalies — the target handled every input"
+                .green()
+                .bold()
+        };
+        out.push_str(&format!("{verdict}\n\n"));
+    }
+
+    out.push_str(&format!("{}\n", rule.dimmed()));
+    out
+}
+
 pub fn banner() -> String {
     // Interior width between the vertical borders.
     const W: usize = 44;

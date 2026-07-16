@@ -405,7 +405,10 @@ fn default_method(attack: &Attack) -> String {
     }
 }
 
-fn build_body(attack: &Attack) -> (Option<String>, Vec<(String, String)>) {
+/// Build the request body and any implied headers for an attack's `send` /
+/// `payload` fields. Exposed to the crate so `killer fuzz` fires requests that
+/// are byte-for-byte identical to a `.klr` `mutate`.
+pub(crate) fn build_body(attack: &Attack) -> (Option<String>, Vec<(String, String)>) {
     if !attack.send.is_empty() {
         (Some(json_object(&attack.send)), Vec::new())
     } else if let Some(p) = &attack.payload {

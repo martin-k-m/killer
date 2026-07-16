@@ -4,6 +4,40 @@ All notable changes to Killer are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+Developer-workflow release. No breaking changes; all existing commands and
+`.klr` semantics are unchanged.
+
+### Added
+
+- **`killer fuzz`** — surfaces the `.klr` `mutate`/`fuzz` generators as a
+  first-class command. Without `--url` it previews the adversarial inputs it
+  would send; with `--url` it fires each one at a target (using the same
+  zero-dependency HTTP client and request encoding as `.klr` `mutate`) and
+  flags any input that triggers a 5xx server fault or an unreachable target.
+  `--list` prints the generator catalog; `--generators` selects a subset;
+  `--field` sets the mutated key; `--fail-on-issues` gates CI.
+- **`killer watch`** — re-runs a scan whenever a source file changes, using a
+  dependency-free polling watcher (periodic mtime snapshots, diffed between
+  ticks) that honors the same ignore rules as `killer scan`. `--interval`
+  tunes the poll period.
+- **`killer init --scaffold`** — in addition to writing `.killer.toml`, creates
+  a `security-tests/` directory with a runnable starter `.klr` file so a new
+  project can run its first test immediately.
+
+### Changed
+
+- The fuzz-generator table now lives in a single `fuzz` module and is shared by
+  both the `.klr` runner and `killer fuzz`, so the two can never drift.
+
+### Notes on scope
+
+`killer fuzz` is a CLI surface over the existing input generators — not a
+coverage-guided fuzzing engine — and `killer watch` polls rather than
+subscribing to OS file events. A standalone fuzzing/chaos subsystem, a
+`ratatui` TUI, and a plugin marketplace remain on the roadmap, not shipped.
+
 ## [1.1.0] — 2026-07-16
 
 Ecosystem and release-infrastructure release. No breaking changes.

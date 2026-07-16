@@ -12,7 +12,7 @@ mod cli;
 
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
-use std::time::{Instant, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use anyhow::{Context, Result};
 use clap::Parser;
@@ -20,14 +20,15 @@ use colored::Colorize;
 
 use cli::{Cli, Command, GithubAction};
 use killer::analyzer::Analyzer;
-use killer::attacks::http::StdHttpClient;
+use killer::attacks::http::{StdHttpClient, Url};
 use killer::config::{self, Config};
+use killer::fuzz::{self, FuzzOptions};
 use killer::git::{self, DiffTarget};
 use killer::intelligence::{IntelStore, Snapshot};
 use killer::klr::interpreter::RunConfig;
 use killer::report::{self, Report};
 use killer::results::{RuleFinding, TestRun};
-use killer::{ci, explain, klr, review, rules, scanner, suites};
+use killer::{ci, explain, klr, review, rules, scanner, suites, watch};
 
 fn main() -> ExitCode {
     let cli = Cli::parse();
@@ -67,9 +68,31 @@ fn main() -> ExitCode {
             no_save,
             fail_on_issues,
         }),
+        Command::Fuzz {
+            list,
+            field,
+            generators,
+            url,
+            method,
+            project,
+            fail_on_issues,
+        } => run_fuzz(FuzzArgs {
+            list,
+            field,
+            generators,
+            url,
+            method,
+            project,
+            fail_on_issues,
+        }),
+        Command::Watch { path, interval } => run_watch(&path, interval),
         Command::Report { path, html, out } => run_report(&path, html, &out),
         Command::Explain { issue_id } => run_explain(&issue_id),
-        Command::Init { path, force } => run_init(&path, force).map(|_| ExitCode::SUCCESS),
+        Command::Init {
+            path,
+            force,
+            scaffold,
+        } => run_init(&path, force, scaffold).map(|_| ExitCode::SUCCESS),
         Command::Doctor { path, fix } => run_doctor(&path, fix),
         Command::Version => {
             print_version();
@@ -147,6 +170,67 @@ fn run_scan(path: &Path, quiet: bool, fail_on_issues: bool, no_record: bool) -> 
         return Ok(ExitCode::FAILURE);
     }
     Ok(ExitCode::SUCCESS)
+}
+
+/// Run `killer watch`: re-scan whenever a source file changes.
+fn run_watch(path: &Path, interval_secs: u64) -> Result<ExitCode> {
+    let root = path
+        .canonicalize()
+        .with_context(|| format!("cannot access path '{}'", path.display()))?;
+    if !root.is_dir() {
+        anyhow::bail!("'{}' is not a directory", path.display());
+    }
+    let interval = Duration::from_secs(interval_secs.max(1));
+
+    print!("{}", report::banner());
+    println!("{}  {}", "Watching".bold(), root.display());
+    println!(
+        "  {}",
+        format!("re-scanning on change every {interval_secs}s — press Ctrl-C to stop").dimmed()
+    );
+
+    // Initial scan establishes the baseline snapshot.
+    let config = Config::load(&root)?;
+    scan_once(&root, &config);
+    let mut prev = watch::snapshot(&root, &config);
+
+    loop {
+        std::thread::sleep(interval);
+        // Reload config each cycle so edits to .killer.toml take effect live.
+        let config = Config::load(&root).unwrap_or_default();
+        let next = watch::snapshot(&root, &config);
+        let changes = watch::diff(&prev, &next);
+        if !changes.is_empty() {
+            println!();
+            println!(
+                "{} {} file{} changed:",
+                "▶".cyan().bold(),
+                changes.count(),
+                if changes.count() == 1 { "" } else { "s" }
+            );
+            for p in changes.all_paths() {
+                println!("  {} {}", "·".dimmed(), p);
+            }
+            scan_once(&root, &config);
+        }
+        prev = next;
+    }
+}
+
+/// Run a scan and print a one-line summary (used by `watch`).
+fn scan_once(root: &Path, config: &Config) {
+    let report = perform_scan(root, config);
+    record_snapshot(root, &report);
+    let c = report.severity_counts();
+    println!(
+        "  {} score {}/100 — {} critical, {} high, {} warning, {} info",
+        status_mark(!report.has_blocking_issues()),
+        report.score(),
+        c.critical,
+        c.high,
+        c.warning,
+        c.info
+    );
 }
 
 /// Run `killer history`.
@@ -492,6 +576,74 @@ fn resolve_workers(parallel: Option<usize>) -> usize {
     }
 }
 
+/// Arguments for `killer fuzz`.
+struct FuzzArgs {
+    list: bool,
+    field: String,
+    generators: Option<String>,
+    url: Option<String>,
+    method: String,
+    project: PathBuf,
+    fail_on_issues: bool,
+}
+
+/// Run `killer fuzz`.
+fn run_fuzz(args: FuzzArgs) -> Result<ExitCode> {
+    if args.list {
+        print!("{}", report::render_fuzz_catalog());
+        return Ok(ExitCode::SUCCESS);
+    }
+
+    print!("{}", report::banner());
+
+    // Resolve the generator list: an explicit CSV, or the whole catalog.
+    let generators: Vec<String> = match &args.generators {
+        Some(csv) => csv
+            .split(',')
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect(),
+        None => fuzz::catalog().iter().map(|g| g.name.to_string()).collect(),
+    };
+    if generators.is_empty() {
+        anyhow::bail!("no generators selected (use --list to see the available ones)");
+    }
+
+    // Resolve the target URL against the project's configured base_url, if any.
+    let target = match &args.url {
+        Some(u) => {
+            let project_root = args.project.canonicalize().with_context(|| {
+                format!("cannot access project path '{}'", args.project.display())
+            })?;
+            let config = Config::load(&project_root)?;
+            let base = config
+                .klr
+                .base_url
+                .unwrap_or_else(|| killer::klr::interpreter::RunConfig::default().base_url);
+            let resolved =
+                Url::resolve(&base, u).map_err(|e| anyhow::anyhow!("invalid target '{u}': {e}"))?;
+            Some(resolved.to_absolute())
+        }
+        None => None,
+    };
+
+    let opts = FuzzOptions {
+        field: args.field,
+        method: args.method.to_uppercase(),
+        generators,
+        target,
+    };
+
+    let client = StdHttpClient::new();
+    let report = fuzz::run(&client, &opts);
+    print!("{}", report::render_fuzz(&report));
+
+    if args.fail_on_issues && report.anomalies().next().is_some() {
+        return Ok(ExitCode::FAILURE);
+    }
+    Ok(ExitCode::SUCCESS)
+}
+
 /// Run `killer report [--html]`.
 fn run_report(path: &Path, html: bool, out: &Path) -> Result<ExitCode> {
     let root = path
@@ -615,7 +767,7 @@ fn timestamp_now() -> (String, String) {
 }
 
 /// Run `killer init`.
-fn run_init(path: &Path, force: bool) -> Result<()> {
+fn run_init(path: &Path, force: bool, scaffold: bool) -> Result<()> {
     if !path.is_dir() {
         anyhow::bail!("'{}' is not a directory", path.display());
     }
@@ -636,6 +788,37 @@ fn run_init(path: &Path, force: bool) -> Result<()> {
         "✓".green().bold(),
         target.display().to_string().bold()
     );
+
+    if scaffold {
+        let dir = path.join(config::SCAFFOLD_DIR);
+        std::fs::create_dir_all(&dir)
+            .with_context(|| format!("failed to create {}", dir.display()))?;
+        let starter = dir.join(config::SCAFFOLD_FILE);
+        if starter.exists() && !force {
+            println!(
+                "{} {} already exists — left unchanged (use --force to overwrite)",
+                "•".yellow(),
+                file_display(path, &starter)
+            );
+        } else {
+            std::fs::write(&starter, Config::starter_klr())
+                .with_context(|| format!("failed to write {}", starter.display()))?;
+            println!(
+                "{} Created {}",
+                "✓".green().bold(),
+                starter.display().to_string().bold()
+            );
+        }
+        println!(
+            "\nNext: run {} to try the static rules,",
+            "killer ci".bold()
+        );
+        println!(
+            "  or start a server and run {} against it.",
+            "killer test".bold()
+        );
+    }
+
     Ok(())
 }
 

@@ -31,7 +31,7 @@ pub fn expand_attack(attack: &Attack) -> Vec<Attack> {
     let mut variants = Vec::new();
     for m in &mutations {
         for generator in &m.generators {
-            let values = generator_values(generator);
+            let values = crate::fuzz::generate(generator);
             let multi = values.len() > 1;
             for (i, val) in values.into_iter().enumerate() {
                 let mut v = base.clone();
@@ -126,27 +126,6 @@ fn check_expectations(name: &str) -> Vec<Expectation> {
             name: other.to_string(),
             expected: true,
         }],
-    }
-}
-
-/// The concrete values a fuzz generator produces.
-fn generator_values(generator: &str) -> Vec<String> {
-    let s = |v: &str| v.to_string();
-    match generator.to_ascii_lowercase().as_str() {
-        "negative_numbers" | "negatives" => vec![s("-1"), s("-999999")],
-        "huge_values" | "huge" | "overflow" => {
-            vec![s("999999999999999"), s("99999999999999999999999999")]
-        }
-        "decimals" | "floats" => vec![s("0.0001"), s("3.14159")],
-        "zero" => vec![s("0")],
-        "empty" => vec![s("")],
-        "sql_injection" | "sqli" => vec![s("' OR 1=1 --")],
-        "xss" => vec![s("<script>alert(1)</script>")],
-        "null_bytes" => vec![s("a%00b")],
-        "long_strings" | "long" => vec!["A".repeat(5000)],
-        "unicode" => vec![s("𝕏𝕏𝕏"), s("🔥🔥🔥")],
-        // Unknown generator: use its own name as the injected value.
-        other => vec![other.to_string()],
     }
 }
 

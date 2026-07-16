@@ -30,6 +30,38 @@ Run `.klr` attacks (and static `.klr` rules) against a target.
 `PATH` may be a single `.klr` file or a directory of them; it defaults to the
 `[klr] directory` in `.killer.toml`, or the current directory.
 
+## `killer fuzz`
+
+Generate adversarial inputs and, optionally, fire them at a target. Uses the
+same generators as the `.klr` `mutate`/`fuzz` construct, so a quick fuzz on the
+command line and a `.klr` file exercise the target identically.
+
+| Flag | Description |
+| ---- | ----------- |
+| `--list` | Print the generator catalog and exit. |
+| `--field <NAME>` | Request field to mutate (default `input`). |
+| `--generators <CSV>` | Comma-separated generator names (default: all). |
+| `--url <URL>` | Target to fire at; relative URLs resolve against the configured `base_url`. Without this, inputs are only previewed. |
+| `--method <METHOD>` | HTTP method when a target is set (default `POST`). |
+| `--project <DIR>` | Project used to resolve config/`base_url` (default `.`). |
+| `--fail-on-issues` | Exit non-zero if any input triggers a 5xx fault or an unreachable target. |
+
+Firing inputs sends the same JSON body a `.klr` `mutate` would. An input is
+reported as an *anomaly* when the server answers with a 5xx status (a fault the
+input triggered) or the request cannot be completed at all.
+
+## `killer watch [PATH]`
+
+Re-run a scan whenever a source file changes. The watcher polls (it takes
+periodic modification-time snapshots and diffs them) rather than subscribing to
+OS file events, keeping the zero-heavy-dependency build intact. It honors the
+same ignore rules as `killer scan`, so build artifacts and `.killer/` state
+never trigger a rerun. Press Ctrl-C to stop.
+
+| Flag | Description |
+| ---- | ----------- |
+| `--interval <SECS>` | Seconds between checks for changes (default `2`). |
+
 ## `killer report [PATH]`
 
 Render the most recent saved test run.
@@ -82,6 +114,7 @@ Write a documented `.killer.toml`.
 | Flag | Description |
 | ---- | ----------- |
 | `--force` | Overwrite an existing config file. |
+| `--scaffold` | Also create a `security-tests/` directory with a runnable starter `.klr` file. |
 
 ## `killer doctor [PATH]`
 
