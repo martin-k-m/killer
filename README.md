@@ -35,9 +35,11 @@ killer review --base origin/main      # review a diff
 killer ci                             # the full gate, for pipelines
 ```
 
-> **Status:** Phases 1–2 complete; Phase 4 (intelligence, review, CI) and
-> Phase 5 (test framework, parallel runner, suites, reports) landed as
-> increments. See [Roadmap](#roadmap) for what's intentionally deferred.
+> **Status:** Pre-release — builds and passes its full test suite from source,
+> but is not yet published to crates.io. The static engine, the `.klr` test
+> framework, project intelligence, code review, and the CI gate are all
+> implemented and tested; see [Roadmap](#roadmap) for what's intentionally
+> deferred.
 
 ---
 
@@ -239,28 +241,37 @@ Run it against a target:
 ```text
 $ killer test examples/auth_security.klr --url http://localhost:8080
 
+╭────────────────────────────────────────────╮
+│                                            │
+│    K I L L E R                             │
+│    Software Security Engine                │
+│                                            │
+╰────────────────────────────────────────────╯
+
 ====================================================
 
-KILLER ATTACK REPORT
+KILLER TEST REPORT
 
 Project:  MyApplication
 Sources:  examples/auth_security.klr
 
-Authentication
-  ✗ FAILED
-  SQL injection vulnerability detected
-  Endpoint:   POST http://localhost:8080/api/login
-  Severity:   CRITICAL
-  Issue:  KLR-SQLI  (killer explain KLR-SQLI)
-     ✗ status != 200  observed status 200
-     ✗ response does_not_contain "token"  "token" leaked in response
+Tests
+  ✗ authentication
+      ✗ status != 200  observed status 200
+      ✗ response does_not_contain "token"  "token" leaked in response
+      → killer explain KLR-SQLI
+  ✗ api_rate_limit
+      ✗ blocked_after 10  no rate limiting after 100 requests
+      → killer explain KLR-RATE-LIMIT
 
-Summary
-  Secure:   0
-  Vulnerable:  1
-  Errored:    0
+Tests:
+  0  passed
+  2  failed
+  2 total
 
-1 vulnerability found
+Time:  0.05s
+
+2 vulnerabilities found
 
 ====================================================
 ```

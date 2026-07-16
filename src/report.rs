@@ -451,26 +451,27 @@ fn sparkline_char(score: u32) -> char {
 
 /// The Killer security-console banner.
 pub fn banner() -> String {
-    let top = "╭────────────────────────────────────────────╮";
-    let bot = "╰────────────────────────────────────────────╯";
-    let blank = "│                                            │";
+    // Interior width between the vertical borders.
+    const W: usize = 44;
+    let bar = "│".red();
+
+    // Build one interior row: 4-space indent + `text`, padded to width W.
+    let row = |text: &str| {
+        let content = format!("    {text}");
+        let pad = W.saturating_sub(content.chars().count());
+        (content, " ".repeat(pad))
+    };
+
+    let (l1, p1) = row("K I L L E R");
+    let (l2, p2) = row("Software Security Engine");
+
     let mut s = String::new();
-    s.push_str(&format!("{}\n", top.red()));
-    s.push_str(&format!("{}\n", blank.red()));
-    s.push_str(&format!(
-        "{}     {}                    {}\n",
-        "│".red(),
-        "K I L L E R".red().bold(),
-        "│".red()
-    ));
-    s.push_str(&format!(
-        "{}     {}          {}\n",
-        "│".red(),
-        "Software Security Engine".dimmed(),
-        "│".red()
-    ));
-    s.push_str(&format!("{}\n", blank.red()));
-    s.push_str(&format!("{}\n", bot.red()));
+    s.push_str(&format!("{}\n", format!("╭{}╮", "─".repeat(W)).red()));
+    s.push_str(&format!("{bar}{}{bar}\n", " ".repeat(W)));
+    s.push_str(&format!("{bar}{}{p1}{bar}\n", l1.red().bold()));
+    s.push_str(&format!("{bar}{}{p2}{bar}\n", l2.dimmed()));
+    s.push_str(&format!("{bar}{}{bar}\n", " ".repeat(W)));
+    s.push_str(&format!("{}\n", format!("╰{}╯", "─".repeat(W)).red()));
     s
 }
 
