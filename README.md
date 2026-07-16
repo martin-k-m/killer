@@ -3,7 +3,7 @@
 [![CI](https://github.com/martin-k-m/killer/actions/workflows/ci.yml/badge.svg)](https://github.com/martin-k-m/killer/actions/workflows/ci.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 ![Rust 1.74+](https://img.shields.io/badge/rust-1.74%2B-orange.svg)
-![Version 1.1.0](https://img.shields.io/badge/version-1.1.0-brightgreen.svg)
+![Version 1.2.0](https://img.shields.io/badge/version-1.2.0-brightgreen.svg)
 
 **A Rust security testing framework with a custom language for writing
 vulnerability attacks and code-analysis rules.**
@@ -40,7 +40,7 @@ killer review --base origin/main      # review a diff
 killer ci                             # the full gate, for pipelines
 ```
 
-> **Status:** v1.1.0 — available now. Builds and passes its full test suite;
+> **Status:** v1.2.0 — available now. Builds and passes its full test suite;
 > install from source (a crates.io release is coming). The static engine, the
 > `.klr` test framework, project intelligence, code review, and the CI gate are
 > all implemented and tested; see [Roadmap](#roadmap) for what's intentionally
