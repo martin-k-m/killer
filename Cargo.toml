@@ -9,7 +9,7 @@ documentation = "https://github.com/martin-k-m/killer/tree/main/docs"
 license = "Apache-2.0"
 repository = "https://github.com/martin-k-m/killer"
 readme = "README.md"
-keywords = ["security", "linter", "static-analysis", "cli", "code-quality"]
+keywords = ["security", "security-testing", "static-analysis", "fuzzing", "cli"]
 categories = ["command-line-utilities", "development-tools"]
 
 [[bin]]
