@@ -1,0 +1,32 @@
+# Built-in Killer suite: authentication security.
+suite "Authentication" {
+
+    test protected_requires_auth {
+        endpoint "/account"
+        check authentication
+        severity high
+        message: "Protected endpoint is reachable without authentication"
+    }
+
+    attack sql_login_bypass {
+        request POST "/login"
+        send {
+            username = "' OR 1=1 --"
+            password = "anything"
+        }
+        expect {
+            status != 200
+            response does_not_contain "token"
+        }
+        severity critical
+        message: "SQL injection authentication bypass"
+    }
+
+    attack brute_force {
+        request POST "/login"
+        repeat 60 times
+        expect blocked_after 20
+        severity high
+        message: "Login endpoint has no brute-force rate limiting"
+    }
+}

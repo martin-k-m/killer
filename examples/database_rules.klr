@@ -1,0 +1,11 @@
+# Static code rules. These run against your project source with:
+#   killer test examples/database_rules.klr --project .
+
+# Flag any line that builds a database query directly from user input
+# without going through a sanitizer or parameterized query.
+rule "unsafe database query"
+when function contains "query"
+and input reaches query
+without sanitization
+severity high
+report: "User input reaches database directly"

@@ -1,0 +1,28 @@
+# File-upload and session-management attacks.
+# Run with:  killer test examples/upload_and_session.klr --url http://localhost:3000
+
+project "MyApplication"
+
+# Path traversal: uploading "../../etc/passwd" must not expose the file.
+attack upload {
+    endpoint "/upload"
+    payload: "../../etc/passwd"
+    expect {
+        file_not_exposed true
+    }
+    severity high
+    message: "Path traversal exposes server files"
+}
+
+# Session reuse: a stolen cookie should be rejected after logout/reuse.
+attack session {
+    target "/account"
+    login user "test"
+    steal cookie
+    attempt reuse
+    expect {
+        session_invalidated true
+    }
+    severity high
+    message: "Stolen session cookie is still accepted"
+}

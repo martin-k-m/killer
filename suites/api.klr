@@ -1,0 +1,25 @@
+# Built-in Killer suite: API robustness and injection.
+suite "API" {
+
+    attack input_injection_fuzz {
+        request POST "/api/item"
+        send { id = "1" }
+        mutate id {
+            sql_injection
+            negative_numbers
+            huge_values
+            empty
+        }
+        check injection
+        severity high
+        message: "API input reaches the backend unsafely"
+    }
+
+    attack rate_limit {
+        request POST "/api/item"
+        repeat 100 times
+        expect blocked_after 30
+        severity medium
+        message: "API endpoint is not rate limited"
+    }
+}

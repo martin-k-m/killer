@@ -1,0 +1,26 @@
+# Built-in Killer suite: common web vulnerabilities.
+suite "Web" {
+
+    attack reflected_xss {
+        request POST "/search"
+        send { q = "hello" }
+        mutate q {
+            xss
+        }
+        expect {
+            response does_not_contain "<script>"
+        }
+        severity high
+        message: "Reflected XSS: script payload echoed back"
+    }
+
+    attack path_traversal {
+        endpoint "/download"
+        payload: "../../etc/passwd"
+        expect {
+            file_not_exposed true
+        }
+        severity high
+        message: "Path traversal exposes server files"
+    }
+}

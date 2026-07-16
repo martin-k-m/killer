@@ -1,0 +1,32 @@
+# Authentication attacks for MyApplication.
+# Run with:  killer test examples/auth_security.klr --url http://localhost:3000
+
+project "MyApplication"
+
+# SQL injection against the login endpoint. A secure system rejects the
+# injected credentials (non-200) and never returns a session token.
+attack authentication {
+    target "/api/login"
+
+    send {
+        username = "' OR 1=1"
+        password = "anything"
+    }
+
+    expect {
+        status != 200
+        response does_not_contain "token"
+    }
+
+    severity critical
+    message: "SQL injection vulnerability detected"
+}
+
+# The login endpoint should rate-limit brute-force attempts.
+attack api_rate_limit {
+    request: POST "/api/login"
+    repeat: 1000 times
+    expect: blocked_after 10
+    severity medium
+    message: "Login endpoint is not rate limited"
+}
