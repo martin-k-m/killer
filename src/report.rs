@@ -125,16 +125,42 @@ impl Report {
             }
         }
 
-        // Severity breakdown.
+        // Severity breakdown, as a small horizontal bar chart.
         out.push_str(&format!("{}\n", "Summary".bold()));
+        let max = counts
+            .critical
+            .max(counts.high)
+            .max(counts.warning)
+            .max(counts.info)
+            .max(1);
+        let bar = |n: usize| -> String {
+            let w = if n == 0 { 0 } else { ((n * 24) / max).max(1) };
+            "█".repeat(w)
+        };
         out.push_str(&format!(
-            "  {}  {}\n",
-            "Critical:".red().bold(),
+            "  {:<9}{} {}\n",
+            "Critical",
+            bar(counts.critical).red().bold(),
             counts.critical
         ));
-        out.push_str(&format!("  {}      {}\n", "High:".red(), counts.high));
-        out.push_str(&format!("  {}   {}\n", "Warning:".yellow(), counts.warning));
-        out.push_str(&format!("  {}      {}\n\n", "Info:".blue(), counts.info));
+        out.push_str(&format!(
+            "  {:<9}{} {}\n",
+            "High",
+            bar(counts.high).red(),
+            counts.high
+        ));
+        out.push_str(&format!(
+            "  {:<9}{} {}\n",
+            "Warning",
+            bar(counts.warning).yellow(),
+            counts.warning
+        ));
+        out.push_str(&format!(
+            "  {:<9}{} {}\n\n",
+            "Info",
+            bar(counts.info).blue(),
+            counts.info
+        ));
 
         // Score.
         let score = self.score();

@@ -1,0 +1,23 @@
+# Built-in Killer suite: database injection and error handling.
+suite "Database" {
+
+    attack sql_injection_fuzz {
+        request POST "/api/query"
+        send { q = "1" }
+        fuzz q
+        check injection
+        severity high
+        message: "A query parameter is injectable"
+    }
+
+    attack error_not_leaked {
+        request POST "/api/query"
+        send { q = "'" }
+        expect {
+            response does_not_contain "SQL syntax"
+            response does_not_contain "syntax error"
+        }
+        severity medium
+        message: "Database errors leak to clients"
+    }
+}

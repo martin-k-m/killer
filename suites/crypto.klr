@@ -1,0 +1,23 @@
+# Built-in Killer suite: secret and key material exposure.
+suite "Crypto" {
+
+    attack no_private_key_leak {
+        endpoint "/config"
+        expect {
+            response does_not_contain "PRIVATE KEY"
+            response does_not_contain "BEGIN RSA"
+        }
+        severity critical
+        message: "Private key material is exposed in a response"
+    }
+
+    attack no_secret_leak {
+        endpoint "/debug"
+        expect {
+            response does_not_contain "api_key"
+            response does_not_contain "secret"
+        }
+        severity high
+        message: "Secrets are exposed via a debug endpoint"
+    }
+}

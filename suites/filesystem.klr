@@ -1,0 +1,23 @@
+# Built-in Killer suite: path traversal and file exposure.
+suite "Filesystem" {
+
+    attack traversal_unix {
+        endpoint "/download"
+        payload: "../../etc/passwd"
+        expect {
+            file_not_exposed true
+        }
+        severity high
+        message: "Path traversal exposes /etc/passwd"
+    }
+
+    attack traversal_windows {
+        endpoint "/download"
+        payload: "..\\..\\windows\\win.ini"
+        expect {
+            file_not_exposed true
+        }
+        severity high
+        message: "Path traversal exposes Windows system files"
+    }
+}

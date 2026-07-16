@@ -19,7 +19,7 @@ Run `.klr` attacks (and static `.klr` rules) against a target.
 
 | Flag | Description |
 | ---- | ----------- |
-| `--suite <NAME>` | Run a built-in suite (`web`, `api`, `authentication`) instead of files. |
+| `--suite <NAME>` | Run a built-in suite (`web`, `api`, `authentication`, `database`, `crypto`, `filesystem`) instead of files. |
 | `--url <URL>` | Base URL that relative targets resolve against. |
 | `--parallel [N]` | Run across N worker threads (omit N to auto-size to the CPU). |
 | `--format <FMT>` | `terminal` (default) or `json`. |
@@ -82,6 +82,15 @@ Write a documented `.killer.toml`.
 | Flag | Description |
 | ---- | ----------- |
 | `--force` | Overwrite an existing config file. |
+
+## `killer doctor [PATH]`
+
+Diagnose a project's Killer setup and environment — git availability, a valid
+`.killer.toml`, the configured `.klr` directory, and a writable `.killer/`.
+
+| Flag | Description |
+| ---- | ----------- |
+| `--fix` | Repair what can be fixed automatically (e.g. create a config). |
 
 ## `killer version`
 

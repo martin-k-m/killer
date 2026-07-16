@@ -70,6 +70,7 @@ fn main() -> ExitCode {
         Command::Report { path, html, out } => run_report(&path, html, &out),
         Command::Explain { issue_id } => run_explain(&issue_id),
         Command::Init { path, force } => run_init(&path, force).map(|_| ExitCode::SUCCESS),
+        Command::Doctor { path, fix } => run_doctor(&path, fix),
         Command::Version => {
             print_version();
             Ok(ExitCode::SUCCESS)
@@ -636,6 +637,134 @@ fn run_init(path: &Path, force: bool) -> Result<()> {
         target.display().to_string().bold()
     );
     Ok(())
+}
+
+/// Run `killer doctor`.
+fn run_doctor(path: &Path, fix: bool) -> Result<ExitCode> {
+    let root = path
+        .canonicalize()
+        .with_context(|| format!("cannot access path '{}'", path.display()))?;
+
+    println!("\n{}\n", "KILLER DOCTOR".bold());
+    let mut problems = 0usize;
+
+    // 1. git — required for `review` and `ci`.
+    let git_ok = std::process::Command::new("git")
+        .arg("--version")
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false);
+    check(
+        if git_ok { Status::Ok } else { Status::Warn },
+        "git available",
+        if git_ok {
+            "found on PATH"
+        } else {
+            "not found — `review` and `ci` need git"
+        },
+    );
+
+    // 2. Configuration file.
+    let cfg_path = root.join(config::CONFIG_FILE_NAME);
+    if cfg_path.exists() {
+        match Config::load(&root) {
+            Ok(_) => check(Status::Ok, ".killer.toml", "present and valid"),
+            Err(e) => {
+                problems += 1;
+                check(Status::Fail, ".killer.toml", &format!("invalid: {e}"));
+            }
+        }
+    } else if fix {
+        std::fs::write(&cfg_path, Config::default_file_contents())
+            .with_context(|| format!("failed to write {}", cfg_path.display()))?;
+        check(Status::Ok, ".killer.toml", "created (--fix)");
+    } else {
+        check(
+            Status::Warn,
+            ".killer.toml",
+            "not found — defaults are used (run `killer init` or `doctor --fix`)",
+        );
+    }
+
+    let config = Config::load(&root).unwrap_or_default();
+
+    // 3. Configured .klr directory, if any.
+    if let Some(dir) = &config.klr.directory {
+        let d = root.join(dir);
+        if d.exists() {
+            check(Status::Ok, "klr directory", dir);
+        } else if fix {
+            std::fs::create_dir_all(&d)
+                .with_context(|| format!("failed to create {}", d.display()))?;
+            check(Status::Ok, "klr directory", &format!("{dir} (created)"));
+        } else {
+            check(
+                Status::Warn,
+                "klr directory",
+                &format!("configured '{dir}' does not exist"),
+            );
+        }
+    }
+
+    // 4. The .killer/ state directory is writable.
+    let killer_dir = root.join(".killer").join("history");
+    match std::fs::create_dir_all(&killer_dir) {
+        Ok(_) => check(
+            Status::Ok,
+            ".killer/ writable",
+            "results & history can be saved",
+        ),
+        Err(e) => {
+            problems += 1;
+            check(
+                Status::Fail,
+                ".killer/ writable",
+                &format!("cannot write: {e}"),
+            );
+        }
+    }
+
+    // 5. Rule set and suites sanity (always available; a self-check).
+    check(
+        Status::Ok,
+        "rules & suites",
+        &format!(
+            "{} scan rules, {} built-in suites",
+            rules::all_rule_ids().len(),
+            suites::all().len()
+        ),
+    );
+
+    println!();
+    if problems == 0 {
+        println!("{}", "✓ Killer is healthy.".green().bold());
+        Ok(ExitCode::SUCCESS)
+    } else {
+        println!(
+            "{}",
+            format!("✗ {problems} problem(s) found — see above.")
+                .red()
+                .bold()
+        );
+        Ok(ExitCode::FAILURE)
+    }
+}
+
+/// Status of a single doctor check.
+enum Status {
+    Ok,
+    Warn,
+    Fail,
+}
+
+/// Print one doctor check line.
+fn check(status: Status, label: &str, detail: &str) {
+    let mark = match status {
+        Status::Ok => "✓".green(),
+        Status::Warn => "⚠".yellow(),
+        Status::Fail => "✗".red().bold(),
+    };
+    println!("  {mark} {}  {}", label.bold(), detail.dimmed());
 }
 
 /// Run `killer version`.

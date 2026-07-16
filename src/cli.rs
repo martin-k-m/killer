@@ -157,6 +157,17 @@ pub enum Command {
         force: bool,
     },
 
+    /// Diagnose a project's Killer setup and environment.
+    Doctor {
+        /// Project directory (defaults to the current directory).
+        #[arg(default_value = ".")]
+        path: PathBuf,
+
+        /// Repair what can be fixed automatically (e.g. create a config).
+        #[arg(long)]
+        fix: bool,
+    },
+
     /// Print version and build information.
     Version,
 }

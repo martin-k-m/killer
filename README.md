@@ -3,7 +3,7 @@
 [![CI](https://github.com/martin-k-m/killer/actions/workflows/ci.yml/badge.svg)](https://github.com/martin-k-m/killer/actions/workflows/ci.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 ![Rust 1.74+](https://img.shields.io/badge/rust-1.74%2B-orange.svg)
-![Version 1.0.0](https://img.shields.io/badge/version-1.0.0-brightgreen.svg)
+![Version 1.1.0](https://img.shields.io/badge/version-1.1.0-brightgreen.svg)
 
 **A Rust security testing framework with a custom language for writing
 vulnerability attacks and code-analysis rules.**
@@ -40,7 +40,7 @@ killer review --base origin/main      # review a diff
 killer ci                             # the full gate, for pipelines
 ```
 
-> **Status:** v1.0.0 — available now. Builds and passes its full test suite;
+> **Status:** v1.1.0 — available now. Builds and passes its full test suite;
 > install from source (a crates.io release is coming). The static engine, the
 > `.klr` test framework, project intelligence, code review, and the CI gate are
 > all implemented and tested; see [Roadmap](#roadmap) for what's intentionally
@@ -106,6 +106,7 @@ killer ci [path]                # full gate: scan + rules + review
 killer github enable [path]     # write a GitHub Actions workflow
 killer explain <ISSUE_ID>       # explain an issue, e.g. KLR-SQLI
 killer init [path]              # write a default .killer.toml
+killer doctor [path]            # diagnose setup (--fix to repair)
 killer version                  # version + rules, issue ids & suites
 ```
 
@@ -120,7 +121,7 @@ killer version                  # version + rules, issue ids & suites
 
 | Flag                | Description                                                            |
 | ------------------- | --------------------------------------------------------------------- |
-| `--suite <NAME>`    | Run a built-in suite (`web`, `api`, `authentication`) instead of files.|
+| `--suite <NAME>`    | Run a built-in suite (`web`, `api`, `authentication`, `database`, `crypto`, `filesystem`) instead of files.|
 | `--url <URL>`       | Base URL relative attack targets resolve against.                     |
 | `--parallel [N]`    | Run tests across N worker threads (omit N to auto-size to the CPU).   |
 | `--format <FMT>`    | `terminal` (default) or `json` (for CI).                              |
@@ -412,7 +413,7 @@ Tests:
 Time:  0.06s
 ```
 
-- **Built-in suites:** `--suite web | api | authentication` (embedded in the binary).
+- **Built-in suites:** `--suite web | api | authentication | database | crypto | filesystem` (embedded in the binary).
 - **Parallel:** `--parallel [N]` runs across scoped worker threads (omit N to auto-size).
 - **Reports:** `--format json` for CI, or `killer report --html` for a
   self-contained dashboard (`killer-report.html`).
@@ -626,7 +627,7 @@ src/
 │   ├── http.rs        # zero-dep HTTP client behind an HttpClient trait
 │   ├── filesystem.rs  # path-traversal / file-exposure helpers
 │   └── database.rs    # SQLi signatures + rule heuristics
-└── suites/        # embedded .klr suite sources (web, api, authentication)
+└── suites/        # embedded .klr suites (web, api, authentication, database, crypto, filesystem)
 ```
 
 > **Note on layout:** the Phase 2 spec sketches a `core/ scanner/ analyzer/ …`

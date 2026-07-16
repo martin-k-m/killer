@@ -27,6 +27,21 @@ const SUITES: &[BuiltinSuite] = &[
         description: "Input-injection fuzzing and rate limiting.",
         source: include_str!("../suites/api.klr"),
     },
+    BuiltinSuite {
+        name: "database",
+        description: "SQL-injection fuzzing and error-leak checks.",
+        source: include_str!("../suites/database.klr"),
+    },
+    BuiltinSuite {
+        name: "crypto",
+        description: "Secret and private-key exposure checks.",
+        source: include_str!("../suites/crypto.klr"),
+    },
+    BuiltinSuite {
+        name: "filesystem",
+        description: "Path-traversal and file-exposure checks.",
+        source: include_str!("../suites/filesystem.klr"),
+    },
 ];
 
 /// Look up a built-in suite by name (case-insensitive).

@@ -1,0 +1,44 @@
+name: Bug report
+description: Report a reproducible problem in Killer
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Please **do not** report security vulnerabilities here —
+        see [SECURITY.md](https://github.com/martin-k-m/killer/blob/main/SECURITY.md).
+  - type: input
+    id: version
+    attributes:
+      label: Killer version
+      description: Output of `killer version` (first line).
+      placeholder: killer 1.0.0
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: OS / toolchain
+      placeholder: "macOS 14 / rustc 1.79 (or Windows GNU, etc.)"
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Command
+      description: The exact command you ran.
+      placeholder: killer test suite.klr --url http://localhost:3000
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected vs. what happened
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproduction
+      description: A minimal project or `.klr` file that triggers the bug.
+      render: text
