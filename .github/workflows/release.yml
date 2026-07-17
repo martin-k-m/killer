@@ -89,3 +89,26 @@ jobs:
           body_path: release-notes.md
           files: dist/*
           generate_release_notes: false
+
+  publish-crate:
+    name: Publish to crates.io
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      # Add a repository secret named CARGO_REGISTRY_TOKEN (a crates.io API
+      # token) to enable this. Until then the step below skips cleanly.
+      CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Publish to crates.io
+        run: |
+          if [ -z "${CARGO_REGISTRY_TOKEN}" ]; then
+            echo "CARGO_REGISTRY_TOKEN not set — skipping crates.io publish."
+            echo "Add the secret in Settings → Secrets and variables → Actions to enable it."
+            exit 0
+          fi
+          cargo publish
