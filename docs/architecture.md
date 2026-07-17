@@ -8,14 +8,19 @@ it can be tested directly and embedded.
 
 ```
 src/
-├── main.rs        # CLI dispatch (scan/test/report/history/review/ci/github/explain/init/version)
+├── main.rs        # CLI dispatch (scan/test/fuzz/dependencies/compliance/graph/benchmark/watch/report/…)
 ├── cli.rs         # clap definitions
 ├── lib.rs         # public library surface
 ├── scanner.rs     # dir walk, language detection, FileData/ProjectStats
 ├── analyzer.rs    # Rule trait, Finding/Severity/Category, the Analyzer
-├── report.rs      # terminal + HTML rendering (scan/test/review/history/banner)
+├── report.rs      # terminal + HTML rendering (scan/test/review/history/graph/deps/compliance/fuzz)
 ├── results.rs     # TestRun/AttackOutcome + JSON persistence (.killer/results)
 ├── intelligence.rs# score-history snapshots + trend (.killer/history)
+├── fuzz.rs        # fuzz generator catalog (shared with .klr) + `killer fuzz`
+├── dependencies.rs# dependency intelligence across 6 ecosystems (`killer dependencies`)
+├── compliance.rs  # OWASP/CWE mapping (`killer compliance`; data in ../mappings/compliance.toml)
+├── graph.rs       # structural import/dependency graph (`killer graph`)
+├── watch.rs       # dependency-free polling watcher (`killer watch`)
 ├── git.rs         # `git diff` parsing for review
 ├── review.rs      # code review over changed lines (+ concurrency heuristics)
 ├── ci.rs          # CI gate helpers + GitHub Actions workflow text

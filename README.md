@@ -750,8 +750,10 @@ Genuinely future work — listed so scope stays honest, never stubbed in code:
 - **[docs/](docs/)** — [introduction](docs/introduction.md),
   [installation](docs/installation.md), [quickstart](docs/quickstart.md),
   [CLI reference](docs/cli.md), [`.klr` guide](docs/klr-guide.md),
-  [writing tests](docs/writing-tests.md), [architecture](docs/architecture.md),
-  and [examples](docs/examples.md).
+  [writing tests](docs/writing-tests.md),
+  [dependency intelligence](docs/dependencies.md),
+  [compliance mapping](docs/compliance.md), [reports](docs/reports.md),
+  [architecture](docs/architecture.md), and [examples](docs/examples.md).
 - **[CONTRIBUTING.md](CONTRIBUTING.md)** — how to build, test, and extend Killer.
 - **[SECURITY.md](SECURITY.md)** — how to report a vulnerability in Killer itself.
 - **[CHANGELOG.md](CHANGELOG.md)** — release history.
