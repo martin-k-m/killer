@@ -344,6 +344,232 @@ pub fn render_attack_report(run: &TestRun) -> String {
     out
 }
 
+/// The distinct issue ids behind a run's confirmed vulnerabilities.
+fn vulnerable_issue_ids(run: &TestRun) -> Vec<String> {
+    let mut seen = std::collections::BTreeSet::new();
+    let mut ids = Vec::new();
+    for a in &run.attacks {
+        if a.verdict == Verdict::Vulnerable {
+            if let Some(id) = &a.issue_id {
+                if seen.insert(id.clone()) {
+                    ids.push(id.clone());
+                }
+            }
+        }
+    }
+    ids
+}
+
+/// A coarse risk band from the run and (optional) latest security score.
+fn risk_band(run: &TestRun, score: Option<u32>) -> colored::ColoredString {
+    let vuln = run.vulnerable_count();
+    let low_score = score.map(|s| s < 50).unwrap_or(false);
+    if vuln > 0 || low_score {
+        "HIGH".red().bold()
+    } else if score.map(|s| s < 80).unwrap_or(false) || run.error_count() > 0 {
+        "MEDIUM".yellow().bold()
+    } else {
+        "LOW".green().bold()
+    }
+}
+
+/// Render an executive summary of a [`TestRun`] — score, risk, headline
+/// findings, and recommendations. `score` is the latest recorded scan score.
+pub fn render_report_executive(run: &TestRun, score: Option<u32>) -> String {
+    let mut out = String::new();
+    let rule = "=".repeat(52);
+    out.push_str(&format!("\n{}\n\n", rule.dimmed()));
+    out.push_str(&format!("{}\n\n", "KILLER EXECUTIVE REPORT".bold()));
+    if let Some(project) = &run.project {
+        out.push_str(&format!("{}  {}\n", "Project:".bold(), project));
+    }
+    if let Some(s) = score {
+        out.push_str(&format!("{}  {}/100\n", "Security score:".bold(), s));
+    }
+    out.push_str(&format!(
+        "{}  {}\n\n",
+        "Risk:".bold(),
+        risk_band(run, score)
+    ));
+
+    let vuln = run.vulnerable_count();
+    out.push_str(&format!(
+        "{}  {} tested · {} vulnerable · {} errored\n\n",
+        "Coverage:".bold(),
+        run.attacks.len(),
+        vuln,
+        run.error_count()
+    ));
+
+    if vuln > 0 {
+        out.push_str(&format!("{}\n", "Major findings".bold().underline()));
+        for a in run
+            .attacks
+            .iter()
+            .filter(|a| a.verdict == Verdict::Vulnerable)
+        {
+            out.push_str(&format!(
+                "  {} {}  {}\n",
+                "✗".red().bold(),
+                a.name.red(),
+                format!("[{}]", a.severity).dimmed()
+            ));
+        }
+        out.push('\n');
+
+        let ids = vulnerable_issue_ids(run);
+        if !ids.is_empty() {
+            out.push_str(&format!("{}\n", "Recommendations".bold().underline()));
+            for id in &ids {
+                if let Some(e) = crate::explain::lookup(id) {
+                    out.push_str(&format!("  {} {}\n", "→".green(), e.remediation));
+                    out.push_str(&format!(
+                        "      {}\n",
+                        format!("killer explain {id}").dimmed()
+                    ));
+                }
+            }
+            out.push('\n');
+        }
+    } else {
+        out.push_str(&format!(
+            "{}\n\n",
+            "No vulnerabilities in the latest run.".green().bold()
+        ));
+    }
+
+    out.push_str(&format!("{}\n", rule.dimmed()));
+    out
+}
+
+/// Render a technical report of a [`TestRun`] — evidence, severity, and
+/// remediation for each confirmed vulnerability, plus static rule findings.
+pub fn render_report_technical(run: &TestRun) -> String {
+    let mut out = String::new();
+    let rule = "=".repeat(52);
+    out.push_str(&format!("\n{}\n\n", rule.dimmed()));
+    out.push_str(&format!("{}\n\n", "KILLER TECHNICAL REPORT".bold()));
+    if let Some(project) = &run.project {
+        out.push_str(&format!("{}  {}\n\n", "Project:".bold(), project));
+    }
+
+    let vulns: Vec<_> = run
+        .attacks
+        .iter()
+        .filter(|a| a.verdict == Verdict::Vulnerable)
+        .collect();
+
+    if vulns.is_empty() {
+        out.push_str(&format!(
+            "{}\n\n",
+            "No confirmed vulnerabilities.".green().bold()
+        ));
+    } else {
+        for a in vulns {
+            out.push_str(&format!(
+                "{} {}  {}\n",
+                "✗".red().bold(),
+                a.name.red().bold(),
+                format!("[{}]", a.severity).dimmed()
+            ));
+            out.push_str(&format!("  {}  {}\n", "Target:".bold(), a.target));
+            let evidence: Vec<_> = a
+                .checks
+                .iter()
+                .filter(|c| c.evaluated && !c.passed)
+                .collect();
+            if !evidence.is_empty() {
+                out.push_str(&format!("  {}\n", "Evidence:".bold()));
+                for c in evidence {
+                    out.push_str(&format!("    - {}  {}\n", c.description, c.detail.dimmed()));
+                }
+            }
+            if let Some(id) = &a.issue_id {
+                if let Some(e) = crate::explain::lookup(id) {
+                    out.push_str(&format!("  {}  {}\n", "Remediation:".bold(), e.remediation));
+                    if let Some(first_ref) = e.references.first() {
+                        out.push_str(&format!(
+                            "  {}  {}\n",
+                            "Reference:".bold(),
+                            first_ref.dimmed()
+                        ));
+                    }
+                }
+                out.push_str(&format!(
+                    "  {}\n",
+                    format!("→ killer explain {id}").dimmed()
+                ));
+            }
+            out.push('\n');
+        }
+    }
+
+    if !run.rule_findings.is_empty() {
+        out.push_str(&format!("{}\n", "Static rule findings".bold().underline()));
+        for f in &run.rule_findings {
+            out.push_str(&format!(
+                "  {} {}  {}\n      {}\n",
+                "•".yellow(),
+                f.rule.bold(),
+                format!("{}:{}", f.file, f.line).dimmed(),
+                f.message.dimmed()
+            ));
+        }
+        out.push('\n');
+    }
+
+    out.push_str(&format!("{}\n", rule.dimmed()));
+    out
+}
+
+/// Render a [`TestRun`] as a Markdown document (for PR comments, wikis, etc.).
+pub fn render_markdown(run: &TestRun) -> String {
+    let mut out = String::new();
+    out.push_str("# Killer Test Report\n\n");
+    if let Some(project) = &run.project {
+        out.push_str(&format!("**Project:** {project}\n\n"));
+    }
+    let vuln = run.vulnerable_count();
+    let errored = run.error_count();
+    let passed = run.attacks.len().saturating_sub(vuln + errored);
+    out.push_str("| Result | Count |\n|---|---|\n");
+    out.push_str(&format!("| Passed | {passed} |\n"));
+    out.push_str(&format!("| Vulnerable | {vuln} |\n"));
+    out.push_str(&format!("| Errored | {errored} |\n\n"));
+
+    if vuln > 0 {
+        out.push_str("## Vulnerabilities\n\n");
+        for a in run
+            .attacks
+            .iter()
+            .filter(|a| a.verdict == Verdict::Vulnerable)
+        {
+            out.push_str(&format!("### {} ({})\n\n", a.name, a.severity));
+            out.push_str(&format!("- **Target:** `{}`\n", a.target));
+            for c in a.checks.iter().filter(|c| c.evaluated && !c.passed) {
+                out.push_str(&format!("- {} — {}\n", c.description, c.detail));
+            }
+            if let Some(id) = &a.issue_id {
+                out.push_str(&format!("- **Issue:** `{id}` (`killer explain {id}`)\n"));
+            }
+            out.push('\n');
+        }
+    }
+
+    if !run.rule_findings.is_empty() {
+        out.push_str("## Static rule findings\n\n");
+        for f in &run.rule_findings {
+            out.push_str(&format!(
+                "- **{}** `{}:{}` — {}\n",
+                f.rule, f.file, f.line, f.message
+            ));
+        }
+        out.push('\n');
+    }
+
+    out
+}
+
 /// Render a code-review report over a set of findings on changed lines.
 pub fn render_review(findings: &[Finding], files_reviewed: usize) -> String {
     let mut out = String::new();
@@ -476,6 +702,188 @@ fn sparkline_char(score: u32) -> char {
 }
 
 /// The Killer security-console banner.
+/// Render a [`crate::compliance::ComplianceReport`] for the terminal.
+pub fn render_compliance(report: &crate::compliance::ComplianceReport) -> String {
+    use crate::compliance::CategoryStatus;
+
+    let mut out = String::new();
+    let rule = "=".repeat(52);
+    out.push_str(&format!("\n{}\n\n", rule.dimmed()));
+    out.push_str(&format!("{}\n\n", "KILLER COMPLIANCE REPORT".bold()));
+    out.push_str(&format!("{}  {}\n", "Framework:".bold(), report.framework));
+    out.push_str(&format!(
+        "{}  {}\n\n",
+        "Findings considered:".bold(),
+        report.findings_considered
+    ));
+
+    for cat in &report.categories {
+        let (mark, status_col) = match cat.status {
+            CategoryStatus::Warning => ("⚠".yellow(), cat.status.label().yellow()),
+            CategoryStatus::Passed => ("✓".green(), cat.status.label().green()),
+            CategoryStatus::NotAssessed => ("•".dimmed(), cat.status.label().dimmed()),
+        };
+        out.push_str(&format!(
+            "  {mark} {}  {}  {}\n",
+            cat.id.bold(),
+            cat.title,
+            status_col
+        ));
+        for reason in &cat.reasons {
+            out.push_str(&format!("      {} {}\n", "→".yellow(), reason.dimmed()));
+        }
+    }
+    out.push('\n');
+
+    if !report.cwes.is_empty() {
+        out.push_str(&format!("{}\n", "CWE references".bold().underline()));
+        for cwe in &report.cwes {
+            let times = if cwe.count == 1 {
+                String::new()
+            } else {
+                format!("  ×{}", cwe.count)
+            };
+            out.push_str(&format!(
+                "  {} {}{}\n",
+                cwe.id.bold(),
+                cwe.title.dimmed(),
+                times.dimmed()
+            ));
+        }
+        out.push('\n');
+    }
+
+    out.push_str(&format!(
+        "{}\n",
+        "This maps what Killer detects to OWASP/CWE — it is not a certification audit.".dimmed()
+    ));
+    out.push_str(&format!("{}\n", rule.dimmed()));
+    out
+}
+
+/// Render a [`crate::dependencies::DependencyReport`] for the terminal.
+pub fn render_dependencies(
+    report: &crate::dependencies::DependencyReport,
+    details: bool,
+) -> String {
+    let mut out = String::new();
+    let rule = "=".repeat(52);
+    out.push_str(&format!("\n{}\n\n", rule.dimmed()));
+    out.push_str(&format!("{}\n\n", "KILLER DEPENDENCY ANALYSIS".bold()));
+
+    if report.total() == 0 {
+        out.push_str(&format!(
+            "{}\n\n{}\n",
+            "No manifests found (Cargo.toml, package.json, requirements.txt, go.mod, pom.xml, *.csproj)."
+                .dimmed(),
+            rule.dimmed()
+        ));
+        return out;
+    }
+
+    out.push_str(&format!("{}\n", "Ecosystems".bold().underline()));
+    let counts = report.ecosystem_counts();
+    let width = counts.iter().map(|(e, _)| e.len()).max().unwrap_or(0);
+    for (eco, n) in &counts {
+        out.push_str(&format!(
+            "  {:<width$}  {} package{}\n",
+            eco.bold(),
+            n,
+            if *n == 1 { "" } else { "s" },
+            width = width
+        ));
+    }
+    out.push('\n');
+
+    out.push_str(&format!(
+        "{}  {}\n",
+        "Production: ".bold(),
+        report.production()
+    ));
+    out.push_str(&format!(
+        "{}  {}\n",
+        "Development:".bold(),
+        report.development()
+    ));
+    out.push_str(&format!(
+        "{}  {}\n\n",
+        "Total:      ".bold(),
+        report.total()
+    ));
+
+    let unused = report.unused_candidates();
+    let dups = report.duplicates();
+    if !unused.is_empty() || !dups.is_empty() {
+        out.push_str(&format!("{}\n", "Warnings".yellow().bold().underline()));
+        for d in &unused {
+            let tag = if d.dev { " (dev)" } else { "" };
+            out.push_str(&format!(
+                "  {} {}{}  {}\n",
+                "⚠".yellow(),
+                d.name.bold(),
+                tag.dimmed(),
+                "possibly unused".dimmed()
+            ));
+        }
+        for (name, versions) in &dups {
+            out.push_str(&format!(
+                "  {} {}  {}\n",
+                "⚠".yellow(),
+                name.bold(),
+                format!("duplicate versions: {}", versions.join(", ")).dimmed()
+            ));
+        }
+        if !unused.is_empty() {
+            out.push_str(&format!(
+                "\n  {}\n",
+                "\"possibly unused\" is a best-effort import heuristic.".dimmed()
+            ));
+        }
+        out.push('\n');
+    }
+
+    if details {
+        out.push_str(&format!("{}\n", "Dependencies".bold().underline()));
+        let name_w = report
+            .dependencies
+            .iter()
+            .map(|d| d.name.len())
+            .max()
+            .unwrap_or(0);
+        for d in &report.dependencies {
+            let ver = d.version.as_deref().unwrap_or("—");
+            let kind = if d.dev {
+                "dev".to_string()
+            } else {
+                "prod".to_string()
+            };
+            let usage = match d.used {
+                Some(true) => "used".green(),
+                Some(false) => "unused?".yellow(),
+                None => "—".dimmed(),
+            };
+            out.push_str(&format!(
+                "  {:<name_w$}  {:<10}  {:<13}  {:<4}  {}\n",
+                d.name.bold(),
+                ver.dimmed(),
+                d.ecosystem.dimmed(),
+                kind,
+                usage,
+                name_w = name_w
+            ));
+        }
+        out.push('\n');
+    } else {
+        out.push_str(&format!(
+            "{}\n\n",
+            "Run killer dependencies --details for the full list.".dimmed()
+        ));
+    }
+
+    out.push_str(&format!("{}\n", rule.dimmed()));
+    out
+}
+
 /// Render a [`crate::graph::ProjectGraph`] as a terminal summary.
 pub fn render_graph(graph: &crate::graph::ProjectGraph) -> String {
     let mut out = String::new();
@@ -861,6 +1269,68 @@ mod tests {
             message: "m".into(),
             suggestion: None,
         }
+    }
+
+    fn vulnerable_run() -> TestRun {
+        use crate::results::{AttackOutcome, CheckResult};
+        TestRun {
+            project: Some("demo".into()),
+            timestamp: "t".into(),
+            sources: vec![],
+            attacks: vec![AttackOutcome {
+                name: "sql_login_bypass".into(),
+                suite: None,
+                severity: "critical".into(),
+                target: "POST http://x/login".into(),
+                verdict: Verdict::Vulnerable,
+                message: None,
+                checks: vec![CheckResult {
+                    description: "status != 200".into(),
+                    passed: false,
+                    evaluated: true,
+                    detail: "observed status 200".into(),
+                }],
+                error: None,
+                issue_id: Some("KLR-SQLI".into()),
+            }],
+            rule_findings: vec![],
+            workers: 1,
+            elapsed_ms: 0,
+        }
+    }
+
+    #[test]
+    fn executive_report_shows_risk_and_recommendation() {
+        let out = render_report_executive(&vulnerable_run(), Some(40));
+        assert!(out.contains("EXECUTIVE"));
+        assert!(out.contains("HIGH"));
+        assert!(out.contains("40/100"));
+        assert!(out.contains("killer explain KLR-SQLI"));
+    }
+
+    #[test]
+    fn technical_report_shows_evidence_and_remediation() {
+        let out = render_report_technical(&vulnerable_run());
+        assert!(out.contains("sql_login_bypass"));
+        assert!(out.contains("Evidence"));
+        assert!(out.contains("observed status 200"));
+        assert!(out.contains("Remediation"));
+    }
+
+    #[test]
+    fn markdown_report_is_valid_markdown() {
+        let out = render_markdown(&vulnerable_run());
+        assert!(out.starts_with("# Killer Test Report"));
+        assert!(out.contains("| Vulnerable | 1 |"));
+        assert!(out.contains("### sql_login_bypass"));
+    }
+
+    #[test]
+    fn clean_run_reports_low_risk() {
+        let mut run = vulnerable_run();
+        run.attacks[0].verdict = Verdict::Secure;
+        let out = render_report_executive(&run, Some(95));
+        assert!(out.contains("LOW"));
     }
 
     #[test]

@@ -3,7 +3,7 @@
 [![CI](https://github.com/martin-k-m/killer/actions/workflows/ci.yml/badge.svg)](https://github.com/martin-k-m/killer/actions/workflows/ci.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 ![Rust 1.74+](https://img.shields.io/badge/rust-1.74%2B-orange.svg)
-![Version 1.2.0](https://img.shields.io/badge/version-1.2.0-brightgreen.svg)
+![Version 1.3.0](https://img.shields.io/badge/version-1.3.0-brightgreen.svg)
 
 **A Rust security testing framework with a custom language for writing
 vulnerability attacks and code-analysis rules.**
@@ -40,7 +40,7 @@ killer review --base origin/main      # review a diff
 killer ci                             # the full gate, for pipelines
 ```
 
-> **Status:** v1.2.0 — available now. Builds and passes its full test suite;
+> **Status:** v1.3.0 — available now. Builds and passes its full test suite;
 > install from source (a crates.io release is coming). The static engine, the
 > `.klr` test framework, project intelligence, code review, and the CI gate are
 > all implemented and tested; see [Roadmap](#roadmap) for what's intentionally
@@ -100,10 +100,12 @@ see the build note under [Development](#development) if `dlltool` errors appear.
 killer scan <path>              # static analysis (defaults to ".")
 killer test [path]              # run .klr tests & rules (--suite, --parallel)
 killer fuzz [--url URL]         # generate adversarial inputs & fire them
+killer dependencies [path]      # dependency intelligence (--details, --json)
+killer compliance [path]        # map findings to OWASP Top 10 / CWE (--json)
 killer graph [path]             # structural project graph (--json)
 killer benchmark [path]         # scan throughput (--runs N)
 killer watch [path]             # re-scan on file change (--interval)
-killer report [path] --html     # render the last run (terminal or HTML)
+killer report [path]            # render the last run (--executive/--technical/--json/--markdown/--html)
 killer history [path]           # security-score trend over time
 killer review [path]            # review changed lines (git diff)
 killer ci [path]                # full gate: scan + rules + review
@@ -712,6 +714,11 @@ Everything below is implemented, tested, and available now:
   reports.
 - **`killer fuzz`** — the `.klr` input generators as a command (preview inputs,
   or fire them at a target and flag faults).
+- **`killer dependencies`** — dependency intelligence across six ecosystems
+  (versions, prod/dev, duplicates, possibly-unused) from local manifests only.
+- **`killer compliance`** — maps detected findings to OWASP Top 10 / CWE
+  (Warning / Passed / Not-assessed), never a false "pass".
+- **`killer report`** — executive, technical, JSON, Markdown, and HTML variants.
 - **`killer graph`** — a structural import/dependency graph.
 - **`killer benchmark`** — scan-throughput measurement.
 - **`killer watch`** — dependency-free re-scan on file change.
@@ -727,6 +734,11 @@ Genuinely future work — listed so scope stays honest, never stubbed in code:
 - A semantic data-flow graph and a Tree-sitter multi-language IR (today's
   `killer graph` is structural).
 - A coverage-guided fuzzing engine and chaos testing as their own subsystems.
+- A vulnerability/CVE dataset for dependency scanning, plus supply-chain
+  reputation and typosquatting signals (`killer dependencies` is inventory-only
+  today — no advisory data).
+- Compliance frameworks beyond OWASP/CWE (SOC 2, ISO 27001, NIST) as certified
+  audits (`killer compliance` maps what Killer detects; it does not certify).
 - An interactive `ratatui` TUI (`killer ui`), a plugin SDK, a package manager
   (`killer add` / imports), and a networked rule & attack marketplace.
 - Live GitHub/GitLab/Jenkins apps and a hosted, distributed security lab.

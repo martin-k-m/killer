@@ -1,0 +1,91 @@
+# Compliance mappings for `killer compliance`.
+#
+# This file is embedded into the binary at build time (like the built-in .klr
+# suites). It defines the OWASP Top 10 (2021) categories Killer reports on, and
+# the mapping from each Killer finding id — a scan rule id (e.g. `hardcoded-
+# secret`) or a .klr issue id (e.g. `KLR-SQLI`) — to a framework reference.
+#
+# It is TOML rather than YAML deliberately: Killer ships zero heavy runtime
+# dependencies, and it already parses TOML, so no new parser is pulled in.
+# Extend coverage by adding [[mapping]] entries (and [[category]] entries for
+# frameworks beyond OWASP Top 10).
+
+# --- OWASP Top 10 (2021) categories -----------------------------------------
+
+[[category]]
+id = "A01:2021"
+title = "Broken Access Control"
+
+[[category]]
+id = "A02:2021"
+title = "Cryptographic Failures"
+
+[[category]]
+id = "A03:2021"
+title = "Injection"
+
+[[category]]
+id = "A04:2021"
+title = "Insecure Design"
+
+[[category]]
+id = "A05:2021"
+title = "Security Misconfiguration"
+
+[[category]]
+id = "A06:2021"
+title = "Vulnerable and Outdated Components"
+
+[[category]]
+id = "A07:2021"
+title = "Identification and Authentication Failures"
+
+[[category]]
+id = "A08:2021"
+title = "Software and Data Integrity Failures"
+
+[[category]]
+id = "A09:2021"
+title = "Security Logging and Monitoring Failures"
+
+[[category]]
+id = "A10:2021"
+title = "Server-Side Request Forgery (SSRF)"
+
+# --- Finding-id → framework mappings ----------------------------------------
+
+[[mapping]]
+key = "hardcoded-secret"
+owasp = "A07:2021"
+cwe = "CWE-798"
+cwe_title = "Use of Hard-coded Credentials"
+
+[[mapping]]
+key = "dangerous-command"
+owasp = "A03:2021"
+cwe = "CWE-78"
+cwe_title = "OS Command Injection"
+
+[[mapping]]
+key = "KLR-SQLI"
+owasp = "A03:2021"
+cwe = "CWE-89"
+cwe_title = "SQL Injection"
+
+[[mapping]]
+key = "KLR-PATH-TRAVERSAL"
+owasp = "A01:2021"
+cwe = "CWE-22"
+cwe_title = "Improper Limitation of a Pathname to a Restricted Directory (Path Traversal)"
+
+[[mapping]]
+key = "KLR-RATE-LIMIT"
+owasp = "A04:2021"
+cwe = "CWE-770"
+cwe_title = "Allocation of Resources Without Limits or Throttling"
+
+[[mapping]]
+key = "KLR-SESSION"
+owasp = "A07:2021"
+cwe = "CWE-384"
+cwe_title = "Session Fixation"

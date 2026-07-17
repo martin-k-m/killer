@@ -4,6 +4,41 @@ All notable changes to Killer are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] — 2026-07-16
+
+Local-first security-platform release. No breaking changes; all existing
+commands and `.klr` semantics are unchanged.
+
+### Added
+
+- **`killer dependencies [--details] [--json]`** — dependency intelligence
+  across six ecosystems from local manifests only (`Cargo.toml`, `package.json`,
+  `requirements.txt`, `go.mod`, and now `pom.xml` and `*.csproj`). Reports
+  per-ecosystem counts, production/development split, duplicate versions, and
+  possibly-unused candidates. No CVE/advisory data — inventory, not scanning.
+- **`killer compliance [--json]`** — maps the findings Killer detects onto
+  OWASP Top 10 (2021) with a CWE reference each. Categories are reported as
+  `Warning`, `Passed`, or `Not assessed` — a category Killer cannot check is
+  never marked passed. The mapping table lives in `mappings/compliance.toml`
+  (embedded, TOML to keep the zero-dependency build). Not a certification audit.
+- **`killer report` formats** — `--executive` (score, risk band, headline
+  findings, recommendations), `--technical` (evidence, severity, remediation),
+  `--json`, and `--markdown`, alongside the existing `--html`.
+- **`killer doctor`** now detects and reports the project's ecosystems.
+
+### Changed
+
+- The dependency-usage heuristic (import matching + Rust inline `crate::path`
+  scan) is shared between `killer graph` and `killer dependencies`.
+
+### Notes on scope
+
+`killer dependencies` is inventory-only: no vulnerability/CVE database,
+supply-chain reputation, or typosquatting detection (those need a dataset a
+zero-dependency local tool cannot ship). `killer compliance` maps to OWASP/CWE
+and is explicitly not a certified SOC 2 / ISO 27001 / NIST audit. Both remain on
+the roadmap as future, un-stubbed work.
+
 ## [1.2.0] — 2026-07-16
 
 Developer-workflow release. No breaking changes; all existing commands and
@@ -119,6 +154,7 @@ Killer ships a real, tested subset of a much larger vision. The following are
 - Fuzzing/chaos as their own subsystems, an interactive `ratatui` TUI, `watch`
   mode, a plugin system, and a package marketplace.
 
+[1.3.0]: https://github.com/martin-k-m/killer/releases/tag/v1.3.0
 [1.2.0]: https://github.com/martin-k-m/killer/releases/tag/v1.2.0
 [1.1.0]: https://github.com/martin-k-m/killer/releases/tag/v1.1.0
 [1.0.0]: https://github.com/martin-k-m/killer/releases/tag/v1.0.0

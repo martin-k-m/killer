@@ -19,8 +19,8 @@ a CI gate (`ci` / `github enable`), a health check (`doctor`), and
 Single Cargo crate exposing a **library** (`src/lib.rs`) + a thin **binary**
 (`src/main.rs`). Everything testable lives in the library.
 
-**Current status: v1.2.0, released and usable** — builds from source and passes
-its full test suite (109 tests). It is **not yet on crates.io**, so installation
+**Current status: v1.3.0, released and usable** — builds from source and passes
+its full test suite (126 tests). It is **not yet on crates.io**, so installation
 is from source (`cargo install --path .`) and `cargo install killer` is still
 "coming soon". The whole implementation is on the public `main` branch. See
 `CHANGELOG.md` for what shipped and the README roadmap for what's deferred.
@@ -60,12 +60,14 @@ cargo test           # unit + integration + doc tests
 
 ```
 src/
-├── main.rs        # CLI dispatch (scan/test/fuzz/graph/benchmark/watch/report/history/review/ci/github/explain/init/doctor/version)
+├── main.rs        # CLI dispatch (scan/test/fuzz/dependencies/compliance/graph/benchmark/watch/report/history/review/ci/github/explain/init/doctor/version)
 ├── cli.rs         # clap definitions
 ├── lib.rs         # public library surface
 ├── scanner.rs     # dir walk, language detection, FileData/ProjectStats
 ├── fuzz.rs        # fuzz generator catalog (shared with .klr) + `killer fuzz` driver
 ├── graph.rs       # structural project graph: imports + declared deps (`killer graph`)
+├── dependencies.rs# dependency intelligence across 6 ecosystems (`killer dependencies`)
+├── compliance.rs  # OWASP/CWE mapping (`killer compliance`; data in ../mappings/compliance.toml)
 ├── watch.rs       # dependency-free polling watcher (`killer watch`)
 ├── analyzer.rs    # Rule trait, Finding/Severity/Category, the Analyzer
 ├── report.rs      # ALL terminal + HTML rendering (scan/test/review/history/banner)
@@ -110,11 +112,15 @@ Input **fuzzing exists** as the `.klr` `mutate`/`fuzz` generators, now also
 surfaced by **`killer fuzz`** (preview inputs, or fire them at a target and flag
 5xx faults). **`killer watch`** (dependency-free polling) and **`killer graph`**
 (a *structural* import/dependency graph with heuristic usage matching) also
-ship. Still **deferred** (roadmap, not built — don't advertise as shipped): TLS
-for attacking `https://` targets, a *semantic* data-flow graph, Tree-sitter
-multi-language IR, a coverage-guided fuzzing engine, chaos testing as its own
-subsystem, an interactive `ratatui` TUI (`killer ui`), a plugin SDK, and a
-networked package manager/marketplace (`killer install`; the "standard library"
+ship. **`killer dependencies`** is manifest-only inventory (6 ecosystems, no
+CVE/advisory data) and **`killer compliance`** maps detected findings to OWASP
+Top 10/CWE (not a certified audit). Still **deferred** (roadmap, not built —
+don't advertise as shipped): TLS for attacking `https://` targets, a *semantic*
+data-flow graph, Tree-sitter multi-language IR, a coverage-guided fuzzing
+engine, a vulnerability/CVE dataset + supply-chain/typosquatting signals for
+dependency scanning, certified compliance frameworks (SOC2/ISO/NIST), chaos
+testing as its own subsystem, an interactive `ratatui` TUI (`killer ui`), a
+plugin SDK, and a networked package manager/marketplace (`killer install`; the "standard library"
 is just the built-in embedded suites — six of them: web, api, authentication,
 database, crypto, filesystem). A multi-crate workspace is intentionally NOT
 done — keep the single crate (rationale in `docs/architecture.md`).
@@ -122,12 +128,12 @@ done — keep the single crate (rationale in `docs/architecture.md`).
 ## Repo / website — where everything stands
 
 Use the `martin-k-m` org everywhere. Two public repos, both with the
-implementation on `main`. The **tool** is released at **v1.2.0**; the
-**website** trails at v1.1.0 until its content is synced (see the cross-repo
+implementation on `main`. The **tool** is released at **v1.3.0**; keep the
+**website** (`killer-web`) synced to the same version (see the cross-repo
 obligation below):
 
 **Tool — `github.com/martin-k-m/killer`** (this repo)
-- `main` has the full implementation (tagged `v1.0.0`, `v1.1.0`, `v1.2.0`). Local work
+- `main` has the full implementation (tagged `v1.0.0` … `v1.3.0`). Local work
   happens on branch `claude/killer-phase-1-core-81f540`; the workflow so far has
   been: commit on the branch, push the branch, then `git push origin HEAD:main`
   (fast-forward), and tag `vX.Y.Z` to fire the release pipeline.

@@ -28,7 +28,9 @@
 pub mod analyzer;
 pub mod attacks;
 pub mod ci;
+pub mod compliance;
 pub mod config;
+pub mod dependencies;
 pub mod explain;
 pub mod fuzz;
 pub mod git;

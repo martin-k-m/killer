@@ -124,12 +124,56 @@ pub enum Command {
         path: PathBuf,
 
         /// Write a self-contained HTML report instead of terminal output.
-        #[arg(long)]
+        #[arg(long, group = "format")]
         html: bool,
 
         /// Output path for the HTML report.
         #[arg(long, default_value = "killer-report.html")]
         out: PathBuf,
+
+        /// High-level summary: score, risk, headline findings, recommendations.
+        #[arg(long, group = "format")]
+        executive: bool,
+
+        /// Detailed report: evidence, severity, and remediation per finding.
+        #[arg(long, group = "format")]
+        technical: bool,
+
+        /// Emit the raw results as JSON.
+        #[arg(long, group = "format")]
+        json: bool,
+
+        /// Emit a Markdown report (for PR comments, wikis, …).
+        #[arg(long, group = "format")]
+        markdown: bool,
+    },
+
+    /// Analyze the project's declared dependencies across ecosystems.
+    Dependencies {
+        /// Project directory (defaults to the current directory).
+        #[arg(default_value = ".")]
+        path: PathBuf,
+
+        /// List every dependency, not just the summary and warnings.
+        #[arg(long)]
+        details: bool,
+
+        /// Emit the analysis as JSON.
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// Map detected findings to OWASP Top 10 and CWE references.
+    ///
+    /// This is a local mapping of what Killer detects — not a certification audit.
+    Compliance {
+        /// Project directory (defaults to the current directory).
+        #[arg(default_value = ".")]
+        path: PathBuf,
+
+        /// Emit the compliance report as JSON.
+        #[arg(long)]
+        json: bool,
     },
 
     /// Build a structural graph of the project (files, imports, dependencies).

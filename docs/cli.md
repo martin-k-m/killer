@@ -30,6 +30,39 @@ Run `.klr` attacks (and static `.klr` rules) against a target.
 `PATH` may be a single `.klr` file or a directory of them; it defaults to the
 `[klr] directory` in `.killer.toml`, or the current directory.
 
+## `killer dependencies [PATH]`
+
+Analyze the project's declared dependencies across ecosystems, entirely from
+local manifests — nothing is fetched.
+
+| Flag | Description |
+| ---- | ----------- |
+| `--details` | List every dependency (name, version, ecosystem, dev/prod, usage). |
+| `--json` | Emit the analysis as JSON (for CI). |
+
+Manifests read: `Cargo.toml`, `package.json`, `requirements.txt`, `go.mod`,
+`pom.xml`, and `*.csproj`. Reports per-ecosystem counts, production vs
+development split, duplicate versions, and "possibly unused" candidates.
+There is **no vulnerability/CVE lookup** — that needs a dataset Killer does not
+ship. "Possibly unused" is a best-effort import heuristic (reliable for Cargo,
+npm, PyPI, and Go; usage is reported as unknown for Maven and NuGet). See
+[dependencies.md](dependencies.md).
+
+## `killer compliance [PATH]`
+
+Map the findings Killer detects onto the **OWASP Top 10 (2021)**, with a CWE
+reference per mapped finding.
+
+| Flag | Description |
+| ---- | ----------- |
+| `--json` | Emit the compliance report as JSON. |
+
+Each category is reported as `Warning` (a mapped finding was detected),
+`Passed` (Killer covers it and found nothing), or `Not assessed` (Killer has no
+rule for it — never silently "passed"). This is a mapping of what Killer
+detects, **not a certification audit**. The mapping table lives in
+`mappings/compliance.toml` and is extensible. See [compliance.md](compliance.md).
+
 ## `killer graph [PATH]`
 
 Build a structural graph of the project: which source files import which
@@ -92,12 +125,20 @@ never trigger a rerun. Press Ctrl-C to stop.
 
 ## `killer report [PATH]`
 
-Render the most recent saved test run.
+Render the most recent saved test run. The format flags below are mutually
+exclusive; the default is the grouped terminal report.
 
 | Flag | Description |
 | ---- | ----------- |
+| `--executive` | High-level summary: security score, risk band, headline findings, recommendations. |
+| `--technical` | Detailed report: evidence, severity, and remediation per finding. |
+| `--json` | Emit the raw results as JSON. |
+| `--markdown` | Emit a Markdown report (for PR comments, wikis). |
 | `--html` | Write a self-contained HTML report instead of terminal output. |
 | `--out <PATH>` | Output path for the HTML report (default `killer-report.html`). |
+
+The `--executive` score is the latest value recorded by `killer scan`. See
+[reports.md](reports.md).
 
 ## `killer history [PATH]`
 

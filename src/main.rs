@@ -27,8 +27,10 @@ use killer::git::{self, DiffTarget};
 use killer::intelligence::{IntelStore, Snapshot};
 use killer::klr::interpreter::RunConfig;
 use killer::report::{self, Report};
-use killer::results::{RuleFinding, TestRun};
-use killer::{ci, explain, graph, klr, review, rules, scanner, suites, watch};
+use killer::results::{RuleFinding, TestRun, Verdict};
+use killer::{
+    ci, compliance, dependencies, explain, graph, klr, review, rules, scanner, suites, watch,
+};
 
 fn main() -> ExitCode {
     let cli = Cli::parse();
@@ -85,10 +87,32 @@ fn main() -> ExitCode {
             project,
             fail_on_issues,
         }),
+        Command::Dependencies {
+            path,
+            details,
+            json,
+        } => run_dependencies(&path, details, json),
+        Command::Compliance { path, json } => run_compliance(&path, json),
         Command::Graph { path, json } => run_graph(&path, json),
         Command::Benchmark { path, runs } => run_benchmark(&path, runs),
         Command::Watch { path, interval } => run_watch(&path, interval),
-        Command::Report { path, html, out } => run_report(&path, html, &out),
+        Command::Report {
+            path,
+            html,
+            out,
+            executive,
+            technical,
+            json,
+            markdown,
+        } => run_report(ReportArgs {
+            path,
+            html,
+            out,
+            executive,
+            technical,
+            json,
+            markdown,
+        }),
         Command::Explain { issue_id } => run_explain(&issue_id),
         Command::Init {
             path,
@@ -170,6 +194,55 @@ fn run_scan(path: &Path, quiet: bool, fail_on_issues: bool, no_record: bool) -> 
 
     if fail_on_issues && report.has_blocking_issues() {
         return Ok(ExitCode::FAILURE);
+    }
+    Ok(ExitCode::SUCCESS)
+}
+
+/// Run `killer compliance`.
+fn run_compliance(path: &Path, json: bool) -> Result<ExitCode> {
+    let root = path
+        .canonicalize()
+        .with_context(|| format!("cannot access path '{}'", path.display()))?;
+    let config = Config::load(&root)?;
+
+    // Detected finding ids: scan rule ids, plus issue ids from any confirmed
+    // vulnerabilities in the latest saved test run.
+    let report = perform_scan(&root, &config);
+    let mut keys: Vec<String> = report.findings.iter().map(|f| f.rule.clone()).collect();
+    if let Ok(run) = load_latest_result(&root) {
+        for a in &run.attacks {
+            if a.verdict == Verdict::Vulnerable {
+                if let Some(id) = &a.issue_id {
+                    keys.push(id.clone());
+                }
+            }
+        }
+    }
+
+    let assessment = compliance::assess(&keys);
+    if json {
+        println!("{}", serde_json::to_string_pretty(&assessment)?);
+    } else {
+        print!("{}", report::banner());
+        print!("{}", report::render_compliance(&assessment));
+    }
+    Ok(ExitCode::SUCCESS)
+}
+
+/// Run `killer dependencies`.
+fn run_dependencies(path: &Path, details: bool, json: bool) -> Result<ExitCode> {
+    let root = path
+        .canonicalize()
+        .with_context(|| format!("cannot access path '{}'", path.display()))?;
+    let config = Config::load(&root)?;
+    let scan = scanner::scan(&root, &config);
+    let report = dependencies::DependencyReport::build(&scan.files);
+
+    if json {
+        println!("{}", serde_json::to_string_pretty(&report)?);
+    } else {
+        print!("{}", report::banner());
+        print!("{}", report::render_dependencies(&report, details));
     }
     Ok(ExitCode::SUCCESS)
 }
@@ -715,24 +788,54 @@ fn run_fuzz(args: FuzzArgs) -> Result<ExitCode> {
 }
 
 /// Run `killer report [--html]`.
-fn run_report(path: &Path, html: bool, out: &Path) -> Result<ExitCode> {
-    let root = path
+/// Arguments for `killer report`.
+struct ReportArgs {
+    path: PathBuf,
+    html: bool,
+    out: PathBuf,
+    executive: bool,
+    technical: bool,
+    json: bool,
+    markdown: bool,
+}
+
+fn run_report(args: ReportArgs) -> Result<ExitCode> {
+    let root = args
+        .path
         .canonicalize()
-        .with_context(|| format!("cannot access path '{}'", path.display()))?;
+        .with_context(|| format!("cannot access path '{}'", args.path.display()))?;
     let run = load_latest_result(&root)?;
 
-    if html {
+    if args.html {
         let doc = report::render_html(&run);
-        std::fs::write(out, doc).with_context(|| format!("failed to write {}", out.display()))?;
+        std::fs::write(&args.out, doc)
+            .with_context(|| format!("failed to write {}", args.out.display()))?;
         println!(
             "{} Wrote {}",
             "✓".green().bold(),
-            out.display().to_string().bold()
+            args.out.display().to_string().bold()
         );
+    } else if args.json {
+        println!("{}", serde_json::to_string_pretty(&run)?);
+    } else if args.markdown {
+        print!("{}", report::render_markdown(&run));
+    } else if args.executive {
+        let score = latest_score(&root);
+        print!("{}", report::render_report_executive(&run, score));
+    } else if args.technical {
+        print!("{}", report::render_report_technical(&run));
     } else {
         print!("{}", report::render_attack_report(&run));
     }
     Ok(ExitCode::SUCCESS)
+}
+
+/// The most recent recorded scan score for a project, if any.
+fn latest_score(root: &Path) -> Option<u32> {
+    IntelStore::new(root)
+        .load_history()
+        .ok()
+        .and_then(|h| h.last().map(|s| s.security_score))
 }
 
 /// Load the most recent saved [`TestRun`] from `.killer/results/`.
@@ -987,6 +1090,25 @@ fn run_doctor(path: &Path, fix: bool) -> Result<ExitCode> {
             suites::all().len()
         ),
     );
+
+    // 6. Detected project ecosystems (informational).
+    let config = Config::load(&root).unwrap_or_default();
+    let scan = scanner::scan(&root, &config);
+    let ecosystems = dependencies::DependencyReport::build(&scan.files).ecosystem_counts();
+    if ecosystems.is_empty() {
+        check(
+            Status::Warn,
+            "project type",
+            "no supported manifest found (Cargo.toml, package.json, requirements.txt, go.mod, pom.xml, *.csproj)",
+        );
+    } else {
+        let list = ecosystems
+            .iter()
+            .map(|(e, n)| format!("{e} ({n})"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        check(Status::Ok, "project type", &list);
+    }
 
     println!();
     if problems == 0 {

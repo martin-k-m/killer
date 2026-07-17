@@ -192,7 +192,7 @@ fn first_segment(s: &str, sep: char) -> &str {
 /// Whether any Rust file references a crate via a fully-qualified path
 /// (`crate_ident::…`) — the idiomatic way to use a crate without a `use`.
 /// Cargo crate names use hyphens; the Rust identifier uses underscores.
-fn rust_crate_referenced(files: &[crate::scanner::FileData], dep_name: &str) -> bool {
+pub fn rust_crate_referenced(files: &[crate::scanner::FileData], dep_name: &str) -> bool {
     let ident = dep_name.replace('-', "_");
     if ident.is_empty() {
         return false;
