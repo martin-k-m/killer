@@ -41,7 +41,7 @@ killer ci                             # the full gate, for pipelines
 ```
 
 > **Status:** v1.3.0 — available now. Builds and passes its full test suite;
-> install from source (a crates.io release is coming). The static engine, the
+> install with `cargo install killer` or from source. The static engine, the
 > `.klr` test framework, project intelligence, code review, and the CI gate are
 > all implemented and tested; see [Roadmap](#roadmap) for what's intentionally
 > deferred, [docs/](docs/) for guides, and [CHANGELOG.md](CHANGELOG.md) for
@@ -75,18 +75,18 @@ killer ci                             # the full gate, for pipelines
 
 ## Installation
 
-From source (the supported path today):
+From crates.io:
+
+```sh
+cargo install killer
+```
+
+Or from source:
 
 ```sh
 git clone https://github.com/martin-k-m/killer
 cd killer
 cargo install --path .
-```
-
-Once a release is published to crates.io this will also work:
-
-```sh
-cargo install killer   # planned — not yet on crates.io
 ```
 
 Requires a stable Rust toolchain (1.74+). On Windows with the GNU toolchain,

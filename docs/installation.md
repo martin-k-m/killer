@@ -2,23 +2,21 @@
 
 Killer requires a stable Rust toolchain (1.74 or newer).
 
-## From source (supported today)
+## From crates.io
+
+```sh
+cargo install killer
+```
+
+This installs the `killer` binary into `~/.cargo/bin` (make sure that's on your
+`PATH`).
+
+## From source
 
 ```sh
 git clone https://github.com/martin-k-m/killer
 cd killer
 cargo install --path .
-```
-
-This builds an optimized binary and installs `killer` into `~/.cargo/bin`
-(make sure that's on your `PATH`).
-
-## From crates.io (not yet published)
-
-Once a release is published, this will work:
-
-```sh
-cargo install killer
 ```
 
 ## Verify

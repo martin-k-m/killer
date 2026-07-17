@@ -20,9 +20,9 @@ Single Cargo crate exposing a **library** (`src/lib.rs`) + a thin **binary**
 (`src/main.rs`). Everything testable lives in the library.
 
 **Current status: v1.3.0, released and usable** — builds from source and passes
-its full test suite (126 tests). It is **not yet on crates.io**, so installation
-is from source (`cargo install --path .`) and `cargo install killer` is still
-"coming soon". The whole implementation is on the public `main` branch. See
+its full test suite (126 tests). It is **published on crates.io**, so
+installation is `cargo install killer` (or `cargo install --path .` from a
+checkout). The whole implementation is on the public `main` branch. See
 `CHANGELOG.md` for what shipped and the README roadmap for what's deferred.
 
 ## Build & test — READ THIS FIRST (Windows toolchain trap)
@@ -154,7 +154,7 @@ obligation below):
   every claim must be verifiable against what's on the tool repo's `main`. The
   roadmap array there drives the on-site roadmap + progress bar; mark an item
   `Shipped` only once its code is public. The site is framed as **released /
-  "available now · v1.1.0"** (crates.io still "coming soon" — that's accurate).
+  "available now · v1.3.0"** and now on crates.io (`cargo install killer`).
 - Favicon is `app/icon.svg`; HTTPS metadata (metadataBase/canonical/OG) points
   at the https domain. Verify with `npm run build` before pushing.
 
@@ -164,7 +164,13 @@ changes in the tool, update BOTH the tool docs (README, `docs/`, CHANGELOG) AND
 `DocumentationPreview` which mirror real CLI output). Push tool changes to
 `main` first so the site's claims stay verifiable.
 
+Killer is **published on crates.io** (v1.3.0, `cargo install killer`). The
+release workflow has a `publish-crate` job that auto-publishes future `vX.Y.Z`
+tags once a `CARGO_REGISTRY_TOKEN` repository secret is added (until then it
+skips cleanly).
+
 **Not done via git (needs the maintainer / GitHub UI):** setting the repo
 description & topics, enabling "Enforce HTTPS" on Pages, creating the GitHub
-Release from a tag if the workflow didn't, publishing to crates.io (needs a
-token), and an open Dependabot alert on `killer-web`.
+Release from a tag if the workflow didn't, adding the `CARGO_REGISTRY_TOKEN`
+secret to automate crates.io publishing, and an open Dependabot alert on
+`killer-web`.
