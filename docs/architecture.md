@@ -8,7 +8,9 @@ it can be tested directly and embedded.
 
 ```
 src/
-├── main.rs        # CLI dispatch (scan/test/report/history/review/ci/github/explain/init/version)
+├── main.rs        # CLI dispatch (scan/test/fuzz/dependencies/compliance/graph/
+│                  #   benchmark/watch/report/history/review/ci/github/explain/
+│                  #   init/doctor/version)
 ├── cli.rs         # clap definitions
 ├── lib.rs         # public library surface
 ├── scanner.rs     # dir walk, language detection, FileData/ProjectStats
@@ -16,6 +18,11 @@ src/
 ├── report.rs      # terminal + HTML rendering (scan/test/review/history/banner)
 ├── results.rs     # TestRun/AttackOutcome + JSON persistence (.killer/results)
 ├── intelligence.rs# score-history snapshots + trend (.killer/history)
+├── fuzz.rs        # fuzz generator catalog (shared with .klr) + `killer fuzz`
+├── graph.rs       # structural project graph: imports + declared deps
+├── dependencies.rs# manifest-only dependency inventory across six ecosystems
+├── compliance.rs  # OWASP Top 10 / CWE mapping (table in ../mappings/compliance.toml)
+├── watch.rs       # dependency-free polling watcher behind `killer watch`
 ├── git.rs         # `git diff` parsing for review
 ├── review.rs      # code review over changed lines (+ concurrency heuristics)
 ├── ci.rs          # CI gate helpers + GitHub Actions workflow text
@@ -30,6 +37,10 @@ src/
     ├── runner.rs       # check/mutate/fuzz expansion + parallel execution
     └── rule_engine.rs  # static .klr rules over source
 ```
+
+`rules/dependencies.rs` is an intentionally empty placeholder: manifest analysis
+lives in the `dependencies`/`graph` modules as its own commands, not as a
+per-file `Rule`. See the module docs for why.
 
 ## Data flow
 
@@ -70,3 +81,7 @@ into crates later if the project grows.
   interpreter/runner arm.
 - **Transport:** implement `attacks::http::HttpClient`.
 - **Built-in suite:** add `suites/<name>.klr`, register in `suites.rs`.
+- **Compliance mapping:** add an entry to `mappings/compliance.toml` (embedded at
+  compile time — no code change needed).
+- **Fuzz generator:** add it to the catalog in `fuzz.rs`; `killer fuzz` and the
+  `.klr` `mutate`/`fuzz` constructs both pick it up.
