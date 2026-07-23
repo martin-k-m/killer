@@ -6,7 +6,7 @@
 //! a rule that covers it and that rule found nothing; categories Killer cannot
 //! detect are reported as `NotAssessed` rather than silently "passing".
 //!
-//! The mapping table lives in [`mappings/compliance.toml`], embedded at build
+//! The mapping table lives in `mappings/compliance.toml`, embedded at build
 //! time. Extend coverage by editing that file — no code change required.
 
 use std::collections::{BTreeMap, BTreeSet};

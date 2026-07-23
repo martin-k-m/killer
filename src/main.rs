@@ -1,12 +1,9 @@
 //! Killer — a fast, extensible code quality and security analysis engine.
 //!
-//! Phase 1: CLI, project scanner, language detection, an extensible rule
-//! engine, an initial set of security/quality rules, and a terminal report.
-//!
-//! Phase 2: the Killer Rule Language (`.klr`) — a DSL for writing vulnerability
-//! attacks and static code rules, executed by `killer test`.
-//!
-//! This binary is a thin wrapper over the `killer` library crate.
+//! This binary is a thin wrapper over the `killer` library crate: it parses the
+//! CLI (see [`cli`]), dispatches to the library, renders the result, and maps
+//! findings onto a process exit code. Everything worth testing lives in the
+//! library.
 
 mod cli;
 

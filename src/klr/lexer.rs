@@ -1,6 +1,6 @@
 //! The `.klr` lexer: turns source text into a stream of [`Token`]s.
 //!
-//! The language is line-oriented, so newlines are emitted as [`Token::Newline`]
+//! The language is line-oriented, so newlines are emitted as [`TokenKind::Newline`]
 //! (with consecutive blank lines collapsed) and used by the parser as soft
 //! statement separators. Comments start with `#` or `//` and run to end of line.
 

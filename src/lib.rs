@@ -5,11 +5,38 @@
 //!
 //! # Overview
 //!
+//! **Static analysis** — the `killer scan` pipeline:
+//!
 //! - [`scanner`] walks a directory, detects languages, and loads file contents.
 //! - [`analyzer`] defines the [`analyzer::Rule`] trait and runs rules over files.
 //! - [`rules`] contains the built-in security and quality rules.
-//! - [`report`] turns findings into a scored, terminal-friendly report.
+//! - [`report`] turns findings into a scored terminal, JSON, Markdown, or HTML
+//!   report.
 //! - [`config`] loads `.killer.toml` settings.
+//!
+//! **The `.klr` language and test framework** — `killer test`:
+//!
+//! - [`klr`] is the language itself: lexer, parser, AST, interpreter, the
+//!   parallel runner, and the static rule engine.
+//! - [`attacks`] holds the executors, including a zero-dependency HTTP client
+//!   behind the [`attacks::http::HttpClient`] trait.
+//! - [`suites`] exposes the six built-in suites, embedded at compile time.
+//! - [`results`] models a test run and persists it under `.killer/results/`.
+//! - [`fuzz`] is the mutation-generator catalog shared by `.klr` `mutate` and
+//!   the `killer fuzz` command.
+//!
+//! **Project analysis and workflow** — everything else:
+//!
+//! - [`graph`] builds a structural import/dependency graph (not a data-flow one).
+//! - [`dependencies`] inventories declared dependencies from local manifests
+//!   across six ecosystems — no CVE or advisory lookup.
+//! - [`compliance`] maps detected findings onto OWASP Top 10 (2021) and CWE.
+//! - [`intelligence`] records score snapshots and computes the trend.
+//! - [`git`] parses `git diff` output for [`review`], which analyzes only the
+//!   lines a change touched.
+//! - [`ci`] provides the gate helpers behind `killer ci` / `killer github enable`.
+//! - [`watch`] is a dependency-free polling file watcher.
+//! - [`explain`] is the knowledge base behind `killer explain <ISSUE_ID>`.
 //!
 //! # Example
 //!

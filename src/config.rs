@@ -133,7 +133,7 @@ impl Config {
 }
 
 /// The directory `killer init --scaffold` creates for `.klr` tests. Matches the
-/// `[klr] directory` in [`DEFAULT_CONFIG_TEMPLATE`].
+/// `[klr] directory` in the template returned by [`Config::default_file_contents`].
 pub const SCAFFOLD_DIR: &str = "security-tests";
 
 /// The starter test file name written into [`SCAFFOLD_DIR`].
